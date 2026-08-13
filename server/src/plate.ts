@@ -15,10 +15,9 @@
  * реальных фото из бота: пересжатый кадр 460 px он не видел вовсе, а на попытку
  * ослабить пороги отвечал сеткой на крыле и на асфальте.
  *
- * Поверх номера — ровная тёмная плашка. Пиксельная мозаика из разноцветных
- * квадратов на карточке читалась как испорченное фото; сплошной прямоугольник
- * выглядит как решение сервиса. Блюр не годится: на мелком номере он остаётся
- * читаемым.
+ * Номер размывается. Радиус считаем от высоты самой пластины, а не берём
+ * фиксированным: слабый блюр на мелком номере оставляет знаки читаемыми, и
+ * именно поэтому здесь до этого стояли сначала мозаика, потом плашка.
  */
 
 import { Jimp } from 'jimp';
@@ -44,18 +43,25 @@ const MIN_SCORE = 0.35;
 const MAX_IOU = 0.45;
 
 /**
- * Запас по краям рамки. Держим маленьким: плашка должна закрывать пластину,
- * а не полбампера — на карточке в приложении лишняя площадь сразу бросается
+ * Запас по краям рамки. Держим маленьким: размывать нужно пластину, а не
+ * полбампера — на карточке в приложении лишняя площадь сразу бросается
  * в глаза. Вертикали чуть больше: модель иногда режет верхний край номера.
  */
 const PAD_X = 0.02;
 const PAD_Y = 0.06;
 
 /**
- * Цвет плашки — тёмно-серый, а не чёрный: чёрный прямоугольник на светлой
- * машине выглядит дырой в фотографии, серый читается как наклейка.
+ * Радиус блюра как доля высоты номера: на крупной пластине деталей больше,
+ * значит и размывать нужно сильнее. При 0.45 знаки сливаются в сплошную полосу.
  */
-const COVER = { r: 0x2d, g: 0x30, b: 0x36 };
+const BLUR_RATIO = 0.45;
+/** На совсем мелком номере доля дала бы радиус в пару пикселей — цифры выжили бы. */
+const MIN_BLUR = 6;
+/**
+ * Края размытого куска растворяем в фотографии: прямоугольник с резкой границей
+ * читается как наклеенная плашка, а не как размытие.
+ */
+const FEATHER_RATIO = 0.18;
 
 let session: Promise<ort.InferenceSession> | null = null;
 
@@ -165,6 +171,35 @@ function parse(output: ort.Tensor, box: Letterbox, width: number, height: number
 }
 
 /**
+ * Кусок картинки в терминах пикселей. Описан структурно: типы jimp у результата
+ * clone().crop() и у Jimp.read() формально разные, а нужны здесь только эти два.
+ */
+interface Pixels {
+  bitmap: { data: Buffer; width: number; height: number };
+  scan(
+    x: number,
+    y: number,
+    w: number,
+    h: number,
+    callback: (x: number, y: number, index: number) => void,
+  ): unknown;
+}
+
+/**
+ * Делает края куска прозрачными к границе, чтобы при наложении размытие
+ * переходило в резкую фотографию плавно, без видимого шва.
+ */
+function feather(patch: Pixels, width: number): void {
+  const { data, width: w, height: h } = patch.bitmap;
+
+  patch.scan(0, 0, w, h, (x, y, index) => {
+    const edge = Math.min(x, y, w - 1 - x, h - 1 - y);
+    if (edge >= width) return;
+    data[index + 3] = Math.round((data[index + 3]! * edge) / width);
+  });
+}
+
+/**
  * Возвращает фото с закрытыми номерами. Если номеров не нашлось — отдаёт
  * исходные байты нетронутыми, чтобы не терять качество на лишней перекодировке.
  *
@@ -183,13 +218,16 @@ export async function hidePlates(input: Uint8Array): Promise<Uint8Array> {
     const plates = parse(result[model.outputNames[0]!]!, box, width, height);
     if (plates.length === 0) return input;
 
-    const { data } = image.bitmap;
     for (const plate of plates) {
-      image.scan(plate.x, plate.y, plate.width, plate.height, (_x, _y, index) => {
-        data[index] = COVER.r;
-        data[index + 1] = COVER.g;
-        data[index + 2] = COVER.b;
-      });
+      // Размываем вырезанный кусок отдельно и возвращаем на место: блюр по всему
+      // кадру стоил бы секунд, а нам нужен один прямоугольник.
+      const patch = image
+        .clone()
+        .crop({ x: plate.x, y: plate.y, w: plate.width, h: plate.height })
+        .blur(Math.max(MIN_BLUR, Math.round(plate.height * BLUR_RATIO)));
+
+      feather(patch, Math.max(2, Math.round(plate.height * FEATHER_RATIO)));
+      image.composite(patch, plate.x, plate.y);
     }
 
     return new Uint8Array(await image.getBuffer('image/jpeg', { quality: 88 }));
