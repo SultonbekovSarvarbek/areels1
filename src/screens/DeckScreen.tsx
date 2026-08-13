@@ -1,27 +1,26 @@
-import { useMemo, useRef } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useMemo } from 'react';
+import { ActivityIndicator, Alert, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 
-import { ActionBar } from '../components/ActionBar';
-import { SwipeDeck, SwipeDeckHandle } from '../components/SwipeDeck';
+import { SwipeDeck } from '../components/SwipeDeck';
 import { Car, SwipeDirection } from '../types';
 import { Palette, ThemeName, fixed, radius } from '../theme';
 import { useColors } from '../ThemeContext';
 import { useT } from '../I18nContext';
 
+/** Объявления заводят только через бота — своей формы подачи в приложении нет. */
+const BOT = 'avtolike_uz_bot';
+
 interface Props {
   deck: Car[];
   index: number;
   activeFilters: number;
-  canUndo: boolean;
   onSwipe: (car: Car, direction: SwipeDirection) => void;
-  onUndo: () => void;
   onOpenFilters: () => void;
   onOpenCar: (car: Car) => void;
   onToggleTheme: () => void;
   themeName: ThemeName;
-  entryFrom: SwipeDirection | null;
   /** Каталог грузится с сервера — колоды ещё нет. */
   loading: boolean;
   /** Текст ошибки загрузки; null, если каталог получен. */
@@ -33,27 +32,31 @@ export function DeckScreen({
   deck,
   index,
   activeFilters,
-  canUndo,
   onSwipe,
-  onUndo,
   onOpenFilters,
   onOpenCar,
   onToggleTheme,
   themeName,
-  entryFrom,
   loading,
   error,
   onRetry,
 }: Props) {
   const c = useColors();
   const t = useT();
-  const styles = useMemo(() => makeStyles(c), [c]);
+  const styles = useMemo(() => makeStyles(c, themeName), [c, themeName]);
 
-  const deckRef = useRef<SwipeDeckHandle>(null);
   // Пусто теперь только когда под фильтры не подошла ни одна машина —
   // колода кольцевая, поэтому счётчик считает позицию внутри текущего круга.
   const isEmpty = deck.length === 0;
   const left = isEmpty ? 0 : deck.length - (index % deck.length);
+
+  // Через t.me, а не tg://: без установленного Telegram схема отвалится молча,
+  // а https подхватит браузер и предложит открыть приложение сам.
+  const openBot = () => {
+    Linking.openURL(`https://t.me/${BOT}`).catch(() => {
+      Alert.alert(t.openFailTitle, t.openFailText);
+    });
+  };
 
   return (
     <View style={styles.root}>
@@ -122,12 +125,10 @@ export function DeckScreen({
           </View>
         ) : (
           <SwipeDeck
-            ref={deckRef}
             cars={deck}
             index={index}
             onSwipe={onSwipe}
             onPressDetails={onOpenCar}
-            entryFrom={entryFrom}
           />
         )}
       </View>
@@ -142,19 +143,32 @@ export function DeckScreen({
                 ? t.noAds
                 : t.remaining(left, deck.length)}
         </Text>
-        <ActionBar
-          canUndo={canUndo}
-          disabled={isEmpty}
-          onUndo={onUndo}
-          onSkip={() => deckRef.current?.swipe('left')}
-          onLike={() => deckRef.current?.swipe('right')}
-        />
+
+        {/* Место освободилось от кнопок свайпа — отдаём его единственному
+            способу подать объявление. */}
+        <Pressable
+          style={({ pressed }) => [styles.sellCta, pressed && styles.sellCtaPressed]}
+          onPress={openBot}
+          accessibilityRole="link"
+          accessibilityLabel={`${t.sellCtaTitle} ${t.sellCtaText}`}
+        >
+          <View style={styles.sellIcon}>
+            <Ionicons name="paper-plane" size={18} color={c.tg} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.sellTitle}>{t.sellCtaTitle}</Text>
+            <Text style={styles.sellText}>
+              {t.sellCtaText} <Text style={styles.sellHandle}>@{BOT}</Text>
+            </Text>
+          </View>
+          <Ionicons name="chevron-forward" size={16} color={c.textFaint} />
+        </Pressable>
       </View>
     </View>
   );
 }
 
-const makeStyles = (c: Palette) =>
+const makeStyles = (c: Palette, theme: ThemeName) =>
   StyleSheet.create({
     root: { flex: 1 },
     header: {
@@ -166,18 +180,21 @@ const makeStyles = (c: Palette) =>
     },
     logoRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
     /**
-     * Знак логотипа тёмно-синий и на чёрном фоне пропадает, поэтому кладём его
-     * на белую плитку — так же, как он выглядит иконкой на домашнем экране.
+     * Знак логотипа тёмно-синий и на чёрном фоне пропадает, поэтому на тёмной
+     * теме кладём его на белую плитку — как иконку на домашнем экране. На
+     * светлой плитка не нужна: она почти совпадает с фоном и читается грязным
+     * пятном, а сам знак на светлом фоне контрастен и без подложки.
      */
     logoTile: {
       width: 32,
       height: 32,
       borderRadius: 9,
-      backgroundColor: fixed.onPhoto,
+      backgroundColor: theme === 'dark' ? fixed.onPhoto : 'transparent',
       alignItems: 'center',
       justifyContent: 'center',
     },
-    logoMark: { width: 22, height: 22 },
+    // Без плитки знак занимает всю клетку, иначе логотип выглядел бы мельче.
+    logoMark: theme === 'dark' ? { width: 22, height: 22 } : { width: 30, height: 30 },
     logo: { color: c.text, fontSize: 22, fontWeight: '900', letterSpacing: -0.4 },
     headerActions: { flexDirection: 'row', gap: 10 },
     iconBtn: {
@@ -204,8 +221,33 @@ const makeStyles = (c: Palette) =>
     },
     badgeText: { color: c.onBright, fontSize: 11, fontWeight: '900' },
     deckArea: { flex: 1, paddingHorizontal: 16, paddingTop: 6, paddingBottom: 10 },
-    footer: { paddingBottom: 6 },
+    /** Кнопки свайпа ушли — под колодой остались счётчик и ссылка на бота. */
+    footer: { paddingHorizontal: 16, paddingBottom: 10 },
     counter: { color: c.textFaint, fontSize: 12, fontWeight: '700', textAlign: 'center' },
+    sellCta: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      marginTop: 10,
+      paddingHorizontal: 14,
+      paddingVertical: 12,
+      borderRadius: radius.md,
+      borderWidth: 1,
+      borderColor: c.border,
+      backgroundColor: c.bgElevated,
+    },
+    sellCtaPressed: { opacity: 0.7 },
+    sellIcon: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      alignItems: 'center',
+      justifyContent: 'center',
+      backgroundColor: fixed.tgSoft,
+    },
+    sellTitle: { color: c.text, fontSize: 14, fontWeight: '800' },
+    sellText: { color: c.textDim, fontSize: 12, marginTop: 2, lineHeight: 16 },
+    sellHandle: { color: c.tg, fontWeight: '800' },
     empty: {
       flex: 1,
       alignItems: 'center',

@@ -15,9 +15,6 @@ interface Dict {
   tabProfile: string;
 
   // Колода
-  actionUndo: string;
-  actionSkip: string;
-  actionLike: string;
   stampSkip: string;
   stampLike: string;
   details: string;
@@ -31,6 +28,8 @@ interface Dict {
   loadFailedTitle: string;
   loadFailedText: string;
   retry: string;
+  sellCtaTitle: string;
+  sellCtaText: string;
 
   // Фильтры
   filters: string;
@@ -157,9 +156,6 @@ const ru: Dict = {
   tabLikes: 'Избранное',
   tabProfile: 'Профиль',
 
-  actionUndo: 'Назад',
-  actionSkip: 'Пропустить',
-  actionLike: 'Нравится',
   stampSkip: 'ПРОПУСК',
   stampLike: 'НРАВИТСЯ',
   details: 'Подробнее',
@@ -173,6 +169,8 @@ const ru: Dict = {
   loadFailedTitle: 'Каталог не загрузился',
   loadFailedText: 'Проверьте соединение и попробуйте ещё раз.',
   retry: 'Повторить',
+  sellCtaTitle: 'Хотите продать машину?',
+  sellCtaText: 'Создайте объявление в Telegram-боте',
 
   filters: 'Фильтры',
   fBrand: 'Марка',
@@ -308,9 +306,6 @@ const uz: Dict = {
   tabLikes: 'Saralangan',
   tabProfile: 'Profil',
 
-  actionUndo: 'Orqaga',
-  actionSkip: "O'tkazish",
-  actionLike: 'Yoqdi',
   stampSkip: "O'TKAZISH",
   stampLike: 'YOQDI',
   details: 'Batafsil',
@@ -325,6 +320,8 @@ const uz: Dict = {
   loadFailedTitle: 'Katalog yuklanmadi',
   loadFailedText: "Aloqani tekshiring va qaytadan urinib ko'ring.",
   retry: 'Qayta urinish',
+  sellCtaTitle: 'Mashinangizni sotmoqchimisiz?',
+  sellCtaText: "Telegram-botda e'lon joylang",
 
   filters: 'Filtrlar',
   fBrand: 'Marka',
@@ -463,9 +460,6 @@ const uzc: Dict = {
   tabLikes: 'Сараланган',
   tabProfile: 'Профил',
 
-  actionUndo: 'Орқага',
-  actionSkip: 'Ўтказиш',
-  actionLike: 'Ёқди',
   stampSkip: 'ЎТКАЗИШ',
   stampLike: 'ЁҚДИ',
   details: 'Батафсил',
@@ -479,6 +473,8 @@ const uzc: Dict = {
   loadFailedTitle: 'Каталог юкланмади',
   loadFailedText: 'Алоқани текширинг ва қайтадан уриниб кўринг.',
   retry: 'Қайта уриниш',
+  sellCtaTitle: 'Машинангизни сотмоқчимисиз?',
+  sellCtaText: 'Telegram-ботда эълон жойланг',
 
   filters: 'Филтрлар',
   fBrand: 'Марка',

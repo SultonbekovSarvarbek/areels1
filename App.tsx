@@ -21,11 +21,6 @@ import { AuthSheet } from './src/components/AuthSheet';
 import { OfferSheet } from './src/components/OfferSheet';
 import { TabBar, TabKey } from './src/components/TabBar';
 
-interface HistoryEntry {
-  carId: string;
-  direction: SwipeDirection;
-}
-
 const buzz = (style: Haptics.ImpactFeedbackStyle) => {
   Haptics.impactAsync(style).catch(() => {
     // Устройство без вибромотора — не критично.
@@ -43,8 +38,6 @@ function Root() {
   const { cars, brands, loading, error, reload } = useCatalog();
 
   const [index, setIndex] = useState(0);
-  const [history, setHistory] = useState<HistoryEntry[]>([]);
-  const [entryFrom, setEntryFrom] = useState<SwipeDirection | null>(null);
 
   const [detailCar, setDetailCar] = useState<Car | null>(null);
   const [filtersVisible, setFiltersVisible] = useState(false);
@@ -86,8 +79,6 @@ function Root() {
   /** Сменились фильтры — начинаем колоду сначала. */
   const resetDeck = useCallback(() => {
     setIndex(0);
-    setHistory([]);
-    setEntryFrom(null);
   }, []);
 
   useEffect(() => {
@@ -112,8 +103,6 @@ function Root() {
   }, [passed]);
 
   const handleSwipe = useCallback((car: Car, direction: SwipeDirection) => {
-    setEntryFrom(null);
-    setHistory((h) => [...h, { carId: car.id, direction }]);
     setIndex((i) => i + 1);
 
     if (direction === 'right') {
@@ -124,18 +113,6 @@ function Root() {
       buzz(Haptics.ImpactFeedbackStyle.Light);
     }
   }, []);
-
-  const handleUndo = useCallback(() => {
-    const last = history[history.length - 1];
-    if (!last) return;
-
-    setHistory((h) => h.slice(0, -1));
-    setIndex((i) => Math.max(0, i - 1));
-    setLiked((l) => l.filter((id) => id !== last.carId));
-    setPassed((p) => p.filter((id) => id !== last.carId));
-    setEntryFrom(last.direction);
-    buzz(Haptics.ImpactFeedbackStyle.Light);
-  }, [history]);
 
   const handleApplyFilters = useCallback(
     (next: Filters) => {
@@ -235,10 +212,7 @@ function Root() {
             deck={deck}
             index={index}
             activeFilters={countActiveFilters(filters)}
-            canUndo={history.length > 0}
-            entryFrom={entryFrom}
             onSwipe={handleSwipe}
-            onUndo={handleUndo}
             onOpenFilters={() => setFiltersVisible(true)}
             onOpenCar={setDetailCar}
             onToggleTheme={toggleTheme}
