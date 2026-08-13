@@ -5,6 +5,15 @@
  * Бот пишет в ту же базу, что читает API, поэтому опубликованное объявление
  * появляется в колоде сразу после перезагрузки каталога в приложении.
  *
+ * Бот говорит на тех же трёх языках, что и приложение (ru/uz/uzc). Тексты —
+ * в ./text.ts, выбранный язык хранится у продавца в базе: сессия живёт в памяти
+ * процесса и не переживает перезапуск, а переспрашивать язык каждый раз незачем.
+ *
+ * Переводится только интерфейс. Свободный ввод — марка, модель, цвет, описание,
+ * имя — уходит в базу как есть, поэтому «Oq» продавца, заполнявшего анкету
+ * по-узбекски, покупатель увидит как «Oq» даже с русским приложением. Значений
+ * из перечислений это не касается: они хранятся кодами и переводятся клиентом.
+ *
  * Состояние анкеты живёт в памяти процесса (session по умолчанию). Перезапуск
  * бота сбрасывает незаконченные анкеты — для дев-режима с tsx watch это
  * осознанный размен: внешнее хранилище сессий пока не окупается.
@@ -25,65 +34,16 @@ import { db } from './db.ts';
 import { botToken } from './env.ts';
 import { hidePlates } from './plate.ts';
 import { ensureBucket, uploadPhoto } from './s3.ts';
-
-/**
- * Подписи перечислений намеренно продублированы, а не взяты из src/i18n.ts:
- * тот модуль тянет за собой словари приложения на три языка и типы клиента,
- * а бот говорит только по-русски. Коды при этом общие (src/types.ts), так что
- * рассинхронизироваться могут только подписи, а не данные.
- */
-const CITY: Record<City, string> = {
-  tashkent: 'Ташкент',
-  samarkand: 'Самарканд',
-  bukhara: 'Бухара',
-  namangan: 'Наманган',
-  andijan: 'Андижан',
-  fergana: 'Фергана',
-  karshi: 'Карши',
-  jizzakh: 'Джизак',
-  termez: 'Термез',
-};
-
-const BODY: Record<BodyType, string> = {
-  sedan: 'Седан',
-  hatchback: 'Хэтчбек',
-  crossover: 'Кроссовер',
-  suv: 'Внедорожник',
-  minivan: 'Минивэн',
-};
-
-const FUEL: Record<Fuel, string> = {
-  petrol: 'Бензин',
-  gas: 'Газ',
-  diesel: 'Дизель',
-  hybrid: 'Гибрид',
-  electric: 'Электро',
-};
-
-const TRANSMISSION: Record<Transmission, string> = {
-  auto: 'Автомат',
-  manual: 'Механика',
-  robot: 'Робот',
-  cvt: 'Вариатор',
-};
-
-const CONDITION: Record<Condition, string> = {
-  excellent: 'Отличное',
-  good: 'Хорошее',
-  average: 'Среднее',
-  needsRepair: 'Требует ремонта',
-};
-
-const DRIVE: Record<Drive, string> = {
-  fwd: 'Передний',
-  rwd: 'Задний',
-  awd: 'Полный',
-};
-
-const SELLER_TYPE: Record<SellerType, string> = {
-  private: 'Частное лицо',
-  dealer: 'Автосалон',
-};
+import {
+  COLORS,
+  LANGS,
+  LANG_LABEL,
+  LANG_PROMPT,
+  TEXT,
+  enums,
+  type BotText,
+  type Lang,
+} from './text.ts';
 
 /**
  * Марки кнопками, а не текстом: в приложении марка — это строка, и фильтр
@@ -91,7 +51,8 @@ const SELLER_TYPE: Record<SellerType, string> = {
  * от разных продавцов расползлись бы по трём кнопкам фильтра.
  *
  * Список — то, что реально ездит по Узбекистану; остальное продавец допишет
- * руками через «Другая марка».
+ * руками через «Другая марка». Переводить список незачем: марки латиницей
+ * одинаковы на всех трёх языках.
  */
 const BRANDS = [
   'Chevrolet',
@@ -112,27 +73,21 @@ const BRANDS = [
   'Renault',
 ];
 
-/** Цвета — по той же причине, что и марки: в карточке это просто строка. */
-const COLORS = [
-  'Белый',
-  'Чёрный',
-  'Серебристый',
-  'Серый',
-  'Синий',
-  'Голубой',
-  'Красный',
-  'Зелёный',
-  'Коричневый',
-  'Бежевый',
-];
-
-const CANCEL = 'Отмена';
-const DONE = 'Готово';
-const SKIP = 'Пропустить';
-const PUBLISH = 'Опубликовать';
-const OTHER_BRAND = 'Другая марка';
-const OTHER_COLOR = 'Другой цвет';
 const MAX_PHOTOS = 10;
+
+/** Ключи текстов-строк: по ним узнаём нажатую кнопку. */
+type ButtonKey = {
+  [K in keyof BotText]: BotText[K] extends string ? K : never;
+}[keyof BotText];
+
+/**
+ * Кнопку сверяем со всеми языками сразу, а не только с текущим: у продавца,
+ * сменившего язык посреди анкеты, в чате остаётся клавиатура на старом языке,
+ * и нажатие по ней должно сработать.
+ */
+function isButton(text: string, key: ButtonKey): boolean {
+  return LANGS.some((lang) => TEXT[lang][key] === text);
+}
 
 interface Draft {
   brand: string;
@@ -173,6 +128,11 @@ interface SessionData {
    * а не нажатие кнопки. Сбрасывается при переходе к следующему вопросу.
    */
   freeInput: boolean;
+  lang: Lang;
+  /** Ждём выбор языка вместо ответа на текущий вопрос. */
+  choosingLang: boolean;
+  /** Поднимали ли язык из базы: после перезапуска сессия пустая. */
+  langLoaded: boolean;
 }
 
 function emptySession(): SessionData {
@@ -184,6 +144,9 @@ function emptySession(): SessionData {
     profile: {},
     confirming: false,
     freeInput: false,
+    lang: 'ru',
+    choosingLang: false,
+    langLoaded: false,
   };
 }
 
@@ -191,28 +154,52 @@ type BotContext = Context & SessionFlavor<SessionData>;
 
 // ─── Разбор ответов ──────────────────────────────────────────────────────────
 
-function keyboard(labels: string[], perRow: number): Keyboard {
+function keyboard(labels: string[], perRow: number, lang: Lang): Keyboard {
   const kb = new Keyboard();
   labels.forEach((label, i) => {
     kb.text(label);
     if ((i + 1) % perRow === 0) kb.row();
   });
-  return kb.row().text(CANCEL).resized();
+  return kb.row().text(TEXT[lang].cancel).resized();
 }
 
-/** Шаг с выбором из перечисления: клавиатура из подписей, ответ — код. */
-function choice<T extends string>(labels: Record<T, string>, perRow = 2) {
-  const codeByLabel = new Map(
-    (Object.entries(labels) as [T, string][]).map(([code, label]) => [label, code]),
-  );
+/**
+ * Шаг с выбором из перечисления: клавиатура из подписей, ответ — код. Подписи
+ * берём из словарей приложения, ответ разбираем по всем языкам сразу.
+ */
+function choice<T extends string>(pick: (lang: Lang) => Record<T, string>, perRow = 2) {
   return {
-    keyboard: keyboard(Object.values(labels) as string[], perRow),
-    parse: (text: string): T | undefined => codeByLabel.get(text.trim()),
+    keyboard: (lang: Lang) => keyboard(Object.values(pick(lang)) as string[], perRow, lang),
+    parse: (text: string): T | undefined => {
+      const needle = text.trim();
+      for (const lang of LANGS) {
+        const found = (Object.entries(pick(lang)) as [T, string][]).find(
+          ([, label]) => label === needle,
+        );
+        if (found) return found[0];
+      }
+      return undefined;
+    },
   };
 }
 
-const textKeyboard = new Keyboard().text(CANCEL).resized();
-const skipKeyboard = new Keyboard().text(SKIP).row().text(CANCEL).resized();
+const textKeyboard = (lang: Lang) => new Keyboard().text(TEXT[lang].cancel).resized();
+const skipKeyboard = (lang: Lang) =>
+  new Keyboard().text(TEXT[lang].skip).row().text(TEXT[lang].cancel).resized();
+
+/** Языки подписаны на себе же — выбирающему ещё нечего переводить. */
+const langKeyboard = new Keyboard()
+  .text(LANG_LABEL.ru)
+  .row()
+  .text(LANG_LABEL.uz)
+  .row()
+  .text(LANG_LABEL.uzc)
+  .resized();
+
+function parseLang(text: string): Lang | undefined {
+  const needle = text.trim();
+  return LANGS.find((lang) => LANG_LABEL[lang] === needle);
+}
 
 /**
  * Числа продавцы пишут как удобно: «12 500», «12500$», «1,6». Приводим к числу
@@ -259,8 +246,8 @@ function normalizeName(text: string): string {
 type StepReply = string | { text: string; keyboard: Keyboard } | null;
 
 interface Step {
-  prompt: string;
-  keyboard: Keyboard;
+  prompt: (lang: Lang) => string;
+  keyboard: (lang: Lang) => Keyboard;
   apply: (text: string, s: SessionData) => StepReply;
 }
 
@@ -270,33 +257,36 @@ interface Step {
  * написания для частых значений, а свободный ввод остаётся запасным выходом.
  */
 function openChoice(config: {
-  prompt: string;
-  options: string[];
+  prompt: (lang: Lang) => string;
+  options: (lang: Lang) => string[];
   perRow: number;
-  otherLabel: string;
-  otherPrompt: string;
+  otherLabel: ButtonKey;
+  otherPrompt: (lang: Lang) => string;
   /** Проверка того, что продавец написал руками. */
-  validate: (value: string) => string | null;
+  validate: (value: string, lang: Lang) => string | null;
   assign: (value: string, s: SessionData) => void;
 }): Step {
   return {
     prompt: config.prompt,
-    keyboard: keyboard([...config.options, config.otherLabel], config.perRow),
+    keyboard: (lang) =>
+      keyboard([...config.options(lang), TEXT[lang][config.otherLabel]], config.perRow, lang),
     apply: (text, s) => {
+      const { lang } = s;
       if (!s.freeInput) {
-        if (text === config.otherLabel) {
+        if (isButton(text, config.otherLabel)) {
           s.freeInput = true;
-          return { text: config.otherPrompt, keyboard: textKeyboard };
+          return { text: config.otherPrompt(lang), keyboard: textKeyboard(lang) };
         }
-        if (!config.options.includes(text)) {
-          return `Выберите кнопкой или нажмите «${config.otherLabel}».`;
+        // Кнопки принимаем на любом языке: список цветов у каждого свой.
+        if (!LANGS.some((l) => config.options(l).includes(text))) {
+          return TEXT[lang].chooseOrOther(TEXT[lang][config.otherLabel]);
         }
         config.assign(text, s);
         return null;
       }
 
       const value = normalizeName(text);
-      const error = config.validate(value);
+      const error = config.validate(value, lang);
       if (error) return error;
 
       config.assign(value, s);
@@ -305,96 +295,105 @@ function openChoice(config: {
   };
 }
 
-const cityChoice = choice(CITY, 3);
-const bodyChoice = choice(BODY);
-const fuelChoice = choice(FUEL, 3);
-const transmissionChoice = choice(TRANSMISSION);
-const driveChoice = choice(DRIVE, 3);
-const conditionChoice = choice(CONDITION);
-const sellerTypeChoice = choice(SELLER_TYPE);
-const yesNo = choice({ yes: 'Торг уместен', no: 'Цена фиксированная' } as const, 1);
+const cityChoice = choice<City>((lang) => enums(lang).city, 3);
+const bodyChoice = choice<BodyType>((lang) => enums(lang).bodyType);
+const fuelChoice = choice<Fuel>((lang) => enums(lang).fuel, 3);
+const transmissionChoice = choice<Transmission>((lang) => enums(lang).transmission);
+const driveChoice = choice<Drive>((lang) => enums(lang).drive, 3);
+const conditionChoice = choice<Condition>((lang) => enums(lang).condition);
+const sellerTypeChoice = choice<SellerType>((lang) => enums(lang).sellerType);
+
+const negotiableChoice = {
+  keyboard: (lang: Lang) => keyboard([TEXT[lang].bargainYes, TEXT[lang].bargainNo], 1, lang),
+  parse: (text: string): boolean | undefined => {
+    if (isButton(text, 'bargainYes')) return true;
+    if (isButton(text, 'bargainNo')) return false;
+    return undefined;
+  },
+};
 
 const CURRENT_YEAR = new Date().getFullYear();
 
 const STEPS: Record<string, Step> = {
   phone: {
-    prompt: 'Ваш номер телефона — по нему покупатели будут звонить.\nНажмите кнопку или напишите номер вручную.',
-    keyboard: new Keyboard().requestContact('Отправить мой номер').row().text(CANCEL).resized(),
+    prompt: (lang) => TEXT[lang].askPhone,
+    keyboard: (lang) =>
+      new Keyboard().requestContact(TEXT[lang].shareContact).row().text(TEXT[lang].cancel).resized(),
     apply: (text, s) => {
       const phone = parsePhone(text);
-      if (!phone) return 'Не похоже на номер. Пример: +998 90 123 45 67';
+      if (!phone) return TEXT[s.lang].errPhone;
       s.profile.phone = phone;
       return null;
     },
   },
   name: {
-    prompt: 'Как вас зовут? Имя увидит покупатель в карточке.',
+    prompt: (lang) => TEXT[lang].askName,
     keyboard: textKeyboard,
     apply: (text, s) => {
       const name = text.trim();
-      if (name.length < 2 || name.length > 40) return 'Имя от 2 до 40 символов.';
+      if (name.length < 2 || name.length > 40) return TEXT[s.lang].errName;
       s.profile.name = name;
       return null;
     },
   },
   sellerType: {
-    prompt: 'Вы частное лицо или автосалон?',
+    prompt: (lang) => TEXT[lang].askSellerType,
     keyboard: sellerTypeChoice.keyboard,
     apply: (text, s) => {
       const type = sellerTypeChoice.parse(text);
-      if (!type) return 'Выберите вариант кнопкой.';
+      if (!type) return TEXT[s.lang].chooseButton;
       s.profile.type = type;
       return null;
     },
   },
 
   brand: openChoice({
-    prompt: 'Марка автомобиля',
-    options: BRANDS,
+    prompt: (lang) => TEXT[lang].askBrand,
+    options: () => BRANDS,
     perRow: 3,
-    otherLabel: OTHER_BRAND,
-    otherPrompt: 'Напишите марку. Например: Opel',
-    validate: (value) => (value.length < 2 || value.length > 30 ? 'Марка от 2 до 30 символов.' : null),
+    otherLabel: 'otherBrand',
+    otherPrompt: (lang) => TEXT[lang].askBrandFree,
+    validate: (value, lang) => (value.length < 2 || value.length > 30 ? TEXT[lang].errBrand : null),
     assign: (value, s) => {
       s.draft.brand = value;
     },
   }),
   model: {
-    prompt: 'Модель. Например: Malibu 2',
+    prompt: (lang) => TEXT[lang].askModel,
     keyboard: textKeyboard,
     apply: (text, s) => {
       const model = text.trim().replace(/\s+/g, ' ');
-      if (model.length < 1 || model.length > 30) return 'Модель до 30 символов.';
+      if (model.length < 1 || model.length > 30) return TEXT[s.lang].errModel;
       s.draft.model = model;
       return null;
     },
   },
   year: {
-    prompt: 'Год выпуска',
+    prompt: (lang) => TEXT[lang].askYear,
     keyboard: textKeyboard,
     apply: (text, s) => {
       const year = parseNumber(text, 1950, CURRENT_YEAR + 1);
-      if (!year) return `Год от 1950 до ${CURRENT_YEAR + 1}.`;
+      if (!year) return TEXT[s.lang].errYear(CURRENT_YEAR + 1);
       s.draft.year = year;
       return null;
     },
   },
   price: {
-    prompt: 'Цена в долларах США. Только число, например: 18500',
+    prompt: (lang) => TEXT[lang].askPrice,
     keyboard: textKeyboard,
     apply: (text, s) => {
       const price = parseNumber(text, 100, 1_000_000);
-      if (!price) return 'Цена от 100 до 1 000 000 $.';
+      if (!price) return TEXT[s.lang].errPrice;
       s.draft.price = price;
       return null;
     },
   },
   mileage: {
-    prompt: 'Пробег в километрах',
+    prompt: (lang) => TEXT[lang].askMileage,
     keyboard: textKeyboard,
     apply: (text, s) => {
       const mileage = parseNumber(text, 0, 1_500_000);
-      if (mileage === undefined) return 'Пробег от 0 до 1 500 000 км.';
+      if (mileage === undefined) return TEXT[s.lang].errMileage;
       s.draft.mileage = mileage;
       return null;
     },
@@ -404,112 +403,112 @@ const STEPS: Record<string, Step> = {
      * Кнопки — только частые ответы, а редкое «7» продавец допишет текстом:
      * parseNumber одинаково разбирает и нажатие кнопки, и ручной ввод.
      */
-    prompt: 'Сколько было владельцев по техпаспорту?',
-    keyboard: keyboard(['1', '2', '3', '4', '5'], 5),
+    prompt: (lang) => TEXT[lang].askOwners,
+    keyboard: (lang) => keyboard(['1', '2', '3', '4', '5'], 5, lang),
     apply: (text, s) => {
       const owners = parseNumber(text, 1, 20);
-      if (!owners) return 'Число владельцев от 1 до 20.';
+      if (!owners) return TEXT[s.lang].errOwners;
       s.draft.owners = owners;
       return null;
     },
   },
   condition: {
-    prompt: 'Состояние машины',
+    prompt: (lang) => TEXT[lang].askCondition,
     keyboard: conditionChoice.keyboard,
     apply: (text, s) => {
       const condition = conditionChoice.parse(text);
-      if (!condition) return 'Выберите состояние кнопкой.';
+      if (!condition) return TEXT[s.lang].chooseButton;
       s.draft.condition = condition;
       return null;
     },
   },
   city: {
-    prompt: 'Город',
+    prompt: (lang) => TEXT[lang].askCity,
     keyboard: cityChoice.keyboard,
     apply: (text, s) => {
       const city = cityChoice.parse(text);
-      if (!city) return 'Выберите город кнопкой.';
+      if (!city) return TEXT[s.lang].chooseButton;
       s.draft.city = city;
       return null;
     },
   },
   bodyType: {
-    prompt: 'Тип кузова',
+    prompt: (lang) => TEXT[lang].askBody,
     keyboard: bodyChoice.keyboard,
     apply: (text, s) => {
       const bodyType = bodyChoice.parse(text);
-      if (!bodyType) return 'Выберите кузов кнопкой.';
+      if (!bodyType) return TEXT[s.lang].chooseButton;
       s.draft.bodyType = bodyType;
       return null;
     },
   },
   fuel: {
-    prompt: 'Топливо',
+    prompt: (lang) => TEXT[lang].askFuel,
     keyboard: fuelChoice.keyboard,
     apply: (text, s) => {
       const fuel = fuelChoice.parse(text);
-      if (!fuel) return 'Выберите топливо кнопкой.';
+      if (!fuel) return TEXT[s.lang].chooseButton;
       s.draft.fuel = fuel;
       return null;
     },
   },
   transmission: {
-    prompt: 'Коробка передач',
+    prompt: (lang) => TEXT[lang].askTransmission,
     keyboard: transmissionChoice.keyboard,
     apply: (text, s) => {
       const transmission = transmissionChoice.parse(text);
-      if (!transmission) return 'Выберите коробку кнопкой.';
+      if (!transmission) return TEXT[s.lang].chooseButton;
       s.draft.transmission = transmission;
       return null;
     },
   },
   drive: {
-    prompt: 'Привод',
+    prompt: (lang) => TEXT[lang].askDrive,
     keyboard: driveChoice.keyboard,
     apply: (text, s) => {
       const drive = driveChoice.parse(text);
-      if (!drive) return 'Выберите привод кнопкой.';
+      if (!drive) return TEXT[s.lang].chooseButton;
       s.draft.drive = drive;
       return null;
     },
   },
   engine: {
-    prompt: 'Объём двигателя в литрах. Например: 1.5\nДля электромобиля напишите 0',
+    prompt: (lang) => TEXT[lang].askEngine,
     keyboard: textKeyboard,
     apply: (text, s) => {
       const engine = parseNumber(text, 0, 8, true);
-      if (engine === undefined) return 'Объём от 0 до 8 литров.';
+      if (engine === undefined) return TEXT[s.lang].errEngine;
       s.draft.engine = engine;
       return null;
     },
   },
   color: openChoice({
-    prompt: 'Цвет',
-    options: COLORS,
+    prompt: (lang) => TEXT[lang].askColor,
+    options: (lang) => COLORS[lang],
     perRow: 3,
-    otherLabel: OTHER_COLOR,
-    otherPrompt: 'Напишите цвет. Например: Тёмно-синий',
-    validate: (value) => (value.length < 3 || value.length > 20 ? 'Цвет от 3 до 20 символов.' : null),
+    otherLabel: 'otherColor',
+    otherPrompt: (lang) => TEXT[lang].askColorFree,
+    validate: (value, lang) => (value.length < 3 || value.length > 20 ? TEXT[lang].errColor : null),
     assign: (value, s) => {
       s.draft.color = value;
     },
   }),
   negotiable: {
-    prompt: 'Торг возможен?',
-    keyboard: yesNo.keyboard,
+    prompt: (lang) => TEXT[lang].askNegotiable,
+    keyboard: negotiableChoice.keyboard,
     apply: (text, s) => {
-      const answer = yesNo.parse(text);
-      if (!answer) return 'Выберите вариант кнопкой.';
-      s.draft.negotiable = answer === 'yes';
+      const answer = negotiableChoice.parse(text);
+      if (answer === undefined) return TEXT[s.lang].chooseButton;
+      s.draft.negotiable = answer;
       return null;
     },
   },
   description: {
-    prompt: 'Опишите машину: состояние, что менялось, комплектация.',
+    prompt: (lang) => TEXT[lang].askDescription,
     keyboard: skipKeyboard,
     apply: (text, s) => {
-      const description = text.trim() === SKIP ? '' : text.trim();
-      if (description.length > 1000) return 'Описание до 1000 символов.';
+      const description = isButton(text.trim(), 'skip') ? '' : text.trim();
+      if (description.length > 1000) return TEXT[s.lang].errDescription;
       s.draft.description = description;
       return null;
     },
@@ -521,10 +520,8 @@ const STEPS: Record<string, Step> = {
    * фотографии ловит отдельный обработчик, а текстом принимается только «Готово».
    */
   photos: {
-    prompt:
-      `Пришлите фото машины (до ${MAX_PHOTOS} штук). Первое станет обложкой.\n` +
-      `Госномер на фото закроем сами.\nКогда закончите — нажмите «${DONE}».`,
-    keyboard: new Keyboard().text(DONE).row().text(CANCEL).resized(),
+    prompt: (lang) => TEXT[lang].askPhotos(MAX_PHOTOS, TEXT[lang].done),
+    keyboard: (lang) => new Keyboard().text(TEXT[lang].done).row().text(TEXT[lang].cancel).resized(),
     apply: () => null,
   },
 };
@@ -564,45 +561,40 @@ function currentStepId(s: SessionData): string | undefined {
 async function askCurrent(ctx: BotContext): Promise<void> {
   const step = currentStep(ctx.session);
   if (!step) return;
-  await ctx.reply(step.prompt, { reply_markup: step.keyboard });
+  const { lang } = ctx.session;
+  await ctx.reply(step.prompt(lang), { reply_markup: step.keyboard(lang) });
 }
 
 function money(value: number): string {
   return `${value.toLocaleString('ru-RU')} $`;
 }
 
-/** 1 владелец, 2 владельца, 5 владельцев. */
-function owners(n: number): string {
-  const mod10 = n % 10;
-  const mod100 = n % 100;
-  if (mod10 === 1 && mod100 !== 11) return `${n} владелец`;
-  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return `${n} владельца`;
-  return `${n} владельцев`;
-}
-
 function summary(s: SessionData): string {
   const d = s.draft as Draft;
+  const t = TEXT[s.lang];
+  const e = enums(s.lang);
   return [
     `<b>${d.brand} ${d.model}, ${d.year}</b>`,
-    `${money(d.price)}${d.negotiable ? ' (торг)' : ''}`,
-    `${d.mileage.toLocaleString('ru-RU')} км · ${CONDITION[d.condition]} · ${CITY[d.city]}`,
-    `${BODY[d.bodyType]} · ${FUEL[d.fuel]} · ${TRANSMISSION[d.transmission]} · ${DRIVE[d.drive]}`,
-    `${d.engine} л · ${d.color} · ${owners(d.owners)}`,
+    `${money(d.price)}${d.negotiable ? ` (${t.summaryBargain})` : ''}`,
+    `${d.mileage.toLocaleString('ru-RU')} ${t.unitKm} · ${e.condition[d.condition]} · ${e.city[d.city]}`,
+    `${e.bodyType[d.bodyType]} · ${e.fuel[d.fuel]} · ${e.transmission[d.transmission]} · ${e.drive[d.drive]}`,
+    `${d.engine} ${t.unitL} · ${d.color} · ${t.owners(d.owners)}`,
     d.description ? `\n${d.description}` : '',
-    `\nФото: ${s.photos.length}`,
-    `Продавец: ${s.profile.name}, ${s.profile.phone}`,
+    `\n${t.summaryPhotos}: ${s.photos.length}`,
+    `${t.summarySeller}: ${s.profile.name}, ${s.profile.phone}`,
   ]
     .filter(Boolean)
     .join('\n');
 }
 
-const confirmKeyboard = new Keyboard().text(PUBLISH).row().text(CANCEL).resized();
+const confirmKeyboard = (lang: Lang) =>
+  new Keyboard().text(TEXT[lang].publish).row().text(TEXT[lang].cancel).resized();
 
 async function showConfirm(ctx: BotContext): Promise<void> {
   ctx.session.confirming = true;
   await ctx.reply(summary(ctx.session), {
     parse_mode: 'HTML',
-    reply_markup: confirmKeyboard,
+    reply_markup: confirmKeyboard(ctx.session.lang),
   });
 }
 
@@ -618,16 +610,30 @@ async function advance(ctx: BotContext): Promise<void> {
 }
 
 function reset(ctx: BotContext): void {
-  const { profile } = ctx.session;
-  // Профиль переживает отмену: спрашивать имя и телефон каждый раз незачем.
-  Object.assign(ctx.session, emptySession(), { profile });
+  const { profile, lang, langLoaded } = ctx.session;
+  // Профиль и язык переживают отмену: спрашивать их каждый раз незачем.
+  Object.assign(ctx.session, emptySession(), { profile, lang, langLoaded });
 }
 
-const menuKeyboard = new Keyboard()
-  .text('Разместить объявление')
-  .row()
-  .text('Мои объявления')
-  .resized();
+const menuKeyboard = (lang: Lang) =>
+  new Keyboard().text(TEXT[lang].menuNew).row().text(TEXT[lang].menuMy).resized();
+
+// ─── Язык ────────────────────────────────────────────────────────────────────
+
+async function askLang(ctx: BotContext): Promise<void> {
+  ctx.session.choosingLang = true;
+  await ctx.reply(LANG_PROMPT, { reply_markup: langKeyboard });
+}
+
+/**
+ * Язык в базе — источник правды: сессия обнуляется при перезапуске бота, и без
+ * записи знакомый продавец каждый раз снова получал бы русский интерфейс.
+ */
+async function saveLang(telegramId: bigint, lang: Lang): Promise<void> {
+  // updateMany, а не update: продавца может ещё не быть — строка заводится
+  // только при первой публикации, а язык выбирается раньше.
+  await db.seller.updateMany({ where: { telegramId }, data: { lang } });
+}
 
 // ─── Публикация ──────────────────────────────────────────────────────────────
 
@@ -642,10 +648,11 @@ async function publish(ctx: BotContext): Promise<void> {
     type: s.profile.type!,
     phone: s.profile.phone!,
     telegramUsername: ctx.from!.username ?? null,
+    lang: s.lang,
   };
 
   // upsert по telegramId: второй раз тот же продавец не должен раздваиваться,
-  // а имя и телефон могли обновиться с прошлого объявления.
+  // а имя, телефон и язык могли обновиться с прошлого объявления.
   const seller = await db.seller.upsert({
     where: { telegramId },
     update: {
@@ -653,6 +660,7 @@ async function publish(ctx: BotContext): Promise<void> {
       type: sellerData.type,
       phone: sellerData.phone,
       telegramUsername: sellerData.telegramUsername,
+      lang: sellerData.lang,
     },
     create: sellerData,
   });
@@ -681,22 +689,24 @@ async function publish(ctx: BotContext): Promise<void> {
     },
   });
 
+  const { lang } = s;
   reset(ctx);
-  await ctx.reply(
-    `Объявление опубликовано и уже в приложении.\nНомер: <code>${listing.id}</code>`,
-    { parse_mode: 'HTML', reply_markup: menuKeyboard },
-  );
+  await ctx.reply(TEXT[lang].published(listing.id), {
+    parse_mode: 'HTML',
+    reply_markup: menuKeyboard(lang),
+  });
 }
 
 // ─── Мои объявления ──────────────────────────────────────────────────────────
 
-function listingKeyboard(id: string, archived: boolean): InlineKeyboard {
+function listingKeyboard(id: string, archived: boolean, lang: Lang): InlineKeyboard {
   return new InlineKeyboard()
-    .text(archived ? 'Вернуть в показ' : 'Снять с показа', `${archived ? 'pub' : 'arc'}:${id}`)
-    .text('Удалить', `del:${id}`);
+    .text(archived ? TEXT[lang].btnShow : TEXT[lang].btnHide, `${archived ? 'pub' : 'arc'}:${id}`)
+    .text(TEXT[lang].btnDelete, `del:${id}`);
 }
 
 async function showMyListings(ctx: BotContext): Promise<void> {
+  const { lang } = ctx.session;
   const telegramId = BigInt(ctx.from!.id);
   const listings = await db.listing.findMany({
     where: { seller: { telegramId } },
@@ -705,18 +715,18 @@ async function showMyListings(ctx: BotContext): Promise<void> {
   });
 
   if (listings.length === 0) {
-    await ctx.reply('У вас пока нет объявлений.', { reply_markup: menuKeyboard });
+    await ctx.reply(TEXT[lang].myEmpty, { reply_markup: menuKeyboard(lang) });
     return;
   }
 
   for (const listing of listings) {
     const archived = listing.status === 'archived';
     const title = `<b>${listing.brand} ${listing.model}, ${listing.year}</b>\n${money(listing.price)}${
-      archived ? '\n<i>снято с показа</i>' : ''
+      archived ? `\n<i>${TEXT[lang].myArchived}</i>` : ''
     }`;
     await ctx.reply(title, {
       parse_mode: 'HTML',
-      reply_markup: listingKeyboard(listing.id, archived),
+      reply_markup: listingKeyboard(listing.id, archived, lang),
     });
   }
 }
@@ -727,17 +737,46 @@ const bot = new Bot<BotContext>(botToken());
 
 bot.use(session({ initial: emptySession }));
 
+/** Язык знакомого продавца поднимаем из базы один раз на сессию. */
+bot.use(async (ctx, next) => {
+  const s = ctx.session;
+  if (!s.langLoaded && ctx.from) {
+    const seller = await db.seller.findUnique({
+      where: { telegramId: BigInt(ctx.from.id) },
+      select: { lang: true },
+    });
+    if (seller) s.lang = seller.lang;
+    s.langLoaded = true;
+  }
+  await next();
+});
+
 bot.command('start', async (ctx) => {
   reset(ctx);
-  await ctx.reply(
-    'Это бот AvtoLike. Здесь размещают объявления, которые покупатели листают в приложении свайпами.',
-    { reply_markup: menuKeyboard },
-  );
+
+  const known = await db.seller.findUnique({
+    where: { telegramId: BigInt(ctx.from!.id) },
+    select: { lang: true },
+  });
+
+  // Незнакомого продавца сперва спрашиваем о языке: на каком показывать
+  // приветствие и меню, мы ещё не знаем.
+  if (!known) {
+    await askLang(ctx);
+    return;
+  }
+
+  ctx.session.lang = known.lang;
+  await ctx.reply(TEXT[known.lang].start, { reply_markup: menuKeyboard(known.lang) });
 });
+
+bot.command('lang', askLang);
 
 bot.command('cancel', async (ctx) => {
   reset(ctx);
-  await ctx.reply('Анкета отменена.', { reply_markup: menuKeyboard });
+  await ctx.reply(TEXT[ctx.session.lang].formCancelled, {
+    reply_markup: menuKeyboard(ctx.session.lang),
+  });
 });
 
 bot.command('my', showMyListings);
@@ -747,6 +786,7 @@ async function startForm(ctx: BotContext): Promise<void> {
   const known = await db.seller.findUnique({ where: { telegramId: BigInt(ctx.from!.id) } });
   if (known) {
     ctx.session.profile = { phone: known.phone, name: known.name, type: known.type };
+    ctx.session.lang = known.lang;
   }
 
   ctx.session.steps = [...(known ? [] : PROFILE_STEPS), ...CAR_STEPS];
@@ -767,7 +807,7 @@ bot.on('message:contact', async (ctx) => {
 
   const phone = parsePhone(ctx.message.contact.phone_number);
   if (!phone) {
-    await ctx.reply('Не удалось разобрать номер, напишите его текстом.');
+    await ctx.reply(TEXT[ctx.session.lang].errPhone);
     return;
   }
 
@@ -777,13 +817,15 @@ bot.on('message:contact', async (ctx) => {
 
 bot.on('message:photo', async (ctx) => {
   const s = ctx.session;
+  const t = TEXT[s.lang];
+
   if (currentStepId(s) !== 'photos') {
-    await ctx.reply('Фото нужны на последнем шаге анкеты. Нажмите «Разместить объявление».');
+    await ctx.reply(t.photoWrongStep(t.menuNew));
     return;
   }
 
   if (s.photos.length >= MAX_PHOTOS) {
-    await ctx.reply(`Больше ${MAX_PHOTOS} фото не поместится. Нажмите «${DONE}».`);
+    await ctx.reply(t.photoTooMany(MAX_PHOTOS, t.done));
     return;
   }
 
@@ -791,7 +833,7 @@ bot.on('message:photo', async (ctx) => {
   const photo = ctx.message.photo[ctx.message.photo.length - 1];
   const file = await ctx.api.getFile(photo.file_id);
   if (!file.file_path) {
-    await ctx.reply('Телеграм не отдал файл, пришлите фото ещё раз.');
+    await ctx.reply(t.photoNoFile);
     return;
   }
 
@@ -799,7 +841,7 @@ bot.on('message:photo', async (ctx) => {
     `https://api.telegram.org/file/bot${bot.token}/${file.file_path}`,
   );
   if (!response.ok) {
-    await ctx.reply('Не удалось скачать фото, пришлите его ещё раз.');
+    await ctx.reply(t.photoDownloadFailed);
     return;
   }
 
@@ -817,22 +859,42 @@ bot.on('message:photo', async (ctx) => {
   }
 
   // Альбом приходит пачкой отдельных сообщений — отвечаем коротко на каждое.
-  await ctx.reply(`Фото ${s.photos.length} из ${MAX_PHOTOS} принято.`);
+  await ctx.reply(t.photoAccepted(s.photos.length, MAX_PHOTOS));
 });
 
 bot.on('message:text', async (ctx) => {
   const s = ctx.session;
   const text = ctx.message.text.trim();
 
-  if (text === CANCEL) {
+  if (s.choosingLang) {
+    const lang = parseLang(text);
+    if (!lang) {
+      await ctx.reply(LANG_PROMPT, { reply_markup: langKeyboard });
+      return;
+    }
+
+    s.lang = lang;
+    s.choosingLang = false;
+    await saveLang(BigInt(ctx.from.id), lang);
+    await ctx.reply(TEXT[lang].langChanged, { reply_markup: menuKeyboard(lang) });
+
+    // Язык могли сменить посреди анкеты — повторяем текущий вопрос на новом.
+    if (currentStepId(s)) await askCurrent(ctx);
+    else await ctx.reply(TEXT[lang].start, { reply_markup: menuKeyboard(lang) });
+    return;
+  }
+
+  const t = TEXT[s.lang];
+
+  if (isButton(text, 'cancel')) {
     reset(ctx);
-    await ctx.reply('Отменено.', { reply_markup: menuKeyboard });
+    await ctx.reply(t.cancelled, { reply_markup: menuKeyboard(s.lang) });
     return;
   }
 
   if (s.confirming) {
-    if (text !== PUBLISH) {
-      await ctx.reply(`Нажмите «${PUBLISH}» или «${CANCEL}».`);
+    if (!isButton(text, 'publish')) {
+      await ctx.reply(t.confirmHint(t.publish, t.cancel));
       return;
     }
     await publish(ctx);
@@ -842,26 +904,26 @@ bot.on('message:text', async (ctx) => {
   const stepId = currentStepId(s);
 
   if (!stepId) {
-    if (text === 'Разместить объявление') {
+    if (isButton(text, 'menuNew')) {
       await startForm(ctx);
       return;
     }
-    if (text === 'Мои объявления') {
+    if (isButton(text, 'menuMy')) {
       await showMyListings(ctx);
       return;
     }
-    await ctx.reply('Выберите действие кнопкой ниже.', { reply_markup: menuKeyboard });
+    await ctx.reply(t.chooseAction, { reply_markup: menuKeyboard(s.lang) });
     return;
   }
 
   if (stepId === 'photos') {
-    if (text !== DONE) {
-      await ctx.reply(`Пришлите фото или нажмите «${DONE}».`);
+    if (!isButton(text, 'done')) {
+      await ctx.reply(t.photoOrDone(t.done));
       return;
     }
     if (s.photos.length === 0) {
       // Без фото объявление не выдаётся API (см. api.ts) — до базы его не пускаем.
-      await ctx.reply('Нужна хотя бы одна фотография.');
+      await ctx.reply(t.photoNeedOne);
       return;
     }
     await showConfirm(ctx);
@@ -880,6 +942,7 @@ bot.on('message:text', async (ctx) => {
 });
 
 bot.on('callback_query:data', async (ctx) => {
+  const { lang } = ctx.session;
   const [action, id] = ctx.callbackQuery.data.split(':');
   if (!id) {
     await ctx.answerCallbackQuery();
@@ -893,23 +956,23 @@ bot.on('callback_query:data', async (ctx) => {
   });
 
   if (!listing) {
-    await ctx.answerCallbackQuery('Объявление не найдено');
+    await ctx.answerCallbackQuery(TEXT[lang].cbNotFound);
     return;
   }
 
   if (action === 'del') {
     await db.listing.delete({ where: { id } });
-    await ctx.answerCallbackQuery('Удалено');
-    await ctx.editMessageText('Объявление удалено.');
+    await ctx.answerCallbackQuery(TEXT[lang].cbDeleted);
+    await ctx.editMessageText(TEXT[lang].cbListingDeleted);
     return;
   }
 
   if (action === 'arc' || action === 'pub') {
     const status = action === 'arc' ? 'archived' : 'published';
     await db.listing.update({ where: { id }, data: { status } });
-    await ctx.answerCallbackQuery(action === 'arc' ? 'Снято с показа' : 'Вернули в показ');
+    await ctx.answerCallbackQuery(action === 'arc' ? TEXT[lang].cbHidden : TEXT[lang].cbShown);
     await ctx.editMessageReplyMarkup({
-      reply_markup: listingKeyboard(id, status === 'archived'),
+      reply_markup: listingKeyboard(id, status === 'archived', lang),
     });
     return;
   }
@@ -927,7 +990,7 @@ bot.catch(async ({ ctx, error }) => {
   else console.error('Ошибка в обработчике:', error);
 
   try {
-    await ctx.reply('Что-то пошло не так. Повторите последнее действие.');
+    await ctx.reply(TEXT[ctx.session?.lang ?? 'ru'].genericError);
   } catch {
     // Ответить не вышло — значит связи нет совсем, писать в лог второй раз незачем.
   }
@@ -935,11 +998,20 @@ bot.catch(async ({ ctx, error }) => {
 
 await ensureBucket();
 
-await bot.api.setMyCommands([
-  { command: 'new', description: 'Разместить объявление' },
-  { command: 'my', description: 'Мои объявления' },
-  { command: 'cancel', description: 'Отменить анкету' },
-]);
+/**
+ * Список команд телеграм показывает по языку своего интерфейса, а не по
+ * выбранному в боте, и узбекскую кириллицу отдельным кодом не различает:
+ * поэтому вариантов два — русский по умолчанию и узбекский латиницей.
+ */
+const commands = (lang: Lang) => [
+  { command: 'new', description: TEXT[lang].cmdNew },
+  { command: 'my', description: TEXT[lang].cmdMy },
+  { command: 'lang', description: TEXT[lang].cmdLang },
+  { command: 'cancel', description: TEXT[lang].cmdCancel },
+];
+
+await bot.api.setMyCommands(commands('ru'));
+await bot.api.setMyCommands(commands('uz'), { language_code: 'uz' });
 
 console.log('Бот запущен');
 await bot.start();

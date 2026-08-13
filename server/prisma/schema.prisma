@@ -70,6 +70,14 @@ enum ListingStatus {
   archived
 }
 
+/// Язык общения бота с продавцом. Коды те же, что у приложения (src/i18n.ts):
+/// uzc — узбекский кириллицей.
+enum Lang {
+  ru
+  uz
+  uzc
+}
+
 model Seller {
   id String @id @default(cuid())
 
@@ -85,6 +93,10 @@ model Seller {
 
   /// Username без «@» — подставляется в https://t.me/...
   telegramUsername String?
+
+  /// Язык бота. Дефолт нужен для продавцов, заведённых до появления выбора:
+  /// до него бот говорил только по-русски.
+  lang Lang @default(ru)
 
   rating Float @default(5)
   deals  Int   @default(0)
