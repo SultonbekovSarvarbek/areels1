@@ -23,6 +23,7 @@ import type {
 } from '../../src/types.ts';
 import { db } from './db.ts';
 import { botToken } from './env.ts';
+import { hidePlates } from './plate.ts';
 import { ensureBucket, uploadPhoto } from './s3.ts';
 
 /**
@@ -520,7 +521,9 @@ const STEPS: Record<string, Step> = {
    * фотографии ловит отдельный обработчик, а текстом принимается только «Готово».
    */
   photos: {
-    prompt: `Пришлите фото машины (до ${MAX_PHOTOS} штук). Первое станет обложкой.\nКогда закончите — нажмите «${DONE}».`,
+    prompt:
+      `Пришлите фото машины (до ${MAX_PHOTOS} штук). Первое станет обложкой.\n` +
+      `Госномер на фото закроем сами.\nКогда закончите — нажмите «${DONE}».`,
     keyboard: new Keyboard().text(DONE).row().text(CANCEL).resized(),
     apply: () => null,
   },
@@ -800,7 +803,10 @@ bot.on('message:photo', async (ctx) => {
     return;
   }
 
-  const url = await uploadPhoto(new Uint8Array(await response.arrayBuffer()));
+  // Госномер замазываем до загрузки: в хранилище не должно быть оригинала,
+  // ссылка на который потом уедет в приложение как есть.
+  const photoBytes = await hidePlates(new Uint8Array(await response.arrayBuffer()));
+  const url = await uploadPhoto(photoBytes);
   s.photos.push(url);
 
   // Фото, присланное уже после «Готово», — обычное дело: показываем сводку

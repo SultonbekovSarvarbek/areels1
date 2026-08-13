@@ -13,8 +13,10 @@
   "dependencies": {
     "@aws-sdk/client-s3": "^3.699.0",
     "@prisma/client": "^6.1.0",
+    "@techstark/opencv-js": "^4.12.0-release.1",
     "fastify": "^5.2.0",
-    "grammy": "^1.32.0"
+    "grammy": "^1.32.0",
+    "jimp": "^1.6.1"
   },
   "devDependencies": {
     "@types/node": "^22.10.0",
