@@ -25,8 +25,6 @@ export type SwipeDirection = 'left' | 'right';
 export interface Seller {
   name: string;
   type: SellerType;
-  rating: number;
-  deals: number;
   /** Номер в формате E.164, без пробелов: +998901234567 */
   phone: string;
   /** Username без «@». Необязателен — телеграм есть не у всех. */

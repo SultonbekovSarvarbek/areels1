@@ -21,8 +21,6 @@ function toSeller(row: SellerRow): Seller {
   return {
     name: row.name,
     type: row.type,
-    rating: row.rating,
-    deals: row.deals,
     phone: row.phone,
     ...(row.telegramUsername ? { telegram: row.telegramUsername } : {}),
   };

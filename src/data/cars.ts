@@ -48,8 +48,6 @@ export const CARS: Car[] = [
     seller: {
       name: 'Азизбек',
       type: 'private',
-      rating: 4.8,
-      deals: 3,
       phone: '+998901247733',
       telegram: 'azizbek_auto',
     },
@@ -79,8 +77,6 @@ export const CARS: Car[] = [
     seller: {
       name: 'Дилшод',
       type: 'private',
-      rating: 4.5,
-      deals: 2,
       phone: '+998912284416',
       telegram: 'dilshod_damas',
     },
@@ -111,8 +107,6 @@ export const CARS: Car[] = [
     seller: {
       name: 'Avato Motors',
       type: 'dealer',
-      rating: 4.7,
-      deals: 214,
       phone: '+998712059090',
       telegram: 'avato_motors',
     },
@@ -142,8 +136,6 @@ export const CARS: Car[] = [
     seller: {
       name: 'Шохрух',
       type: 'private',
-      rating: 4.6,
-      deals: 5,
       phone: '+998977743920',
       telegram: 'shohruh_nexia',
     },
@@ -173,8 +165,6 @@ export const CARS: Car[] = [
     seller: {
       name: 'Нодира',
       type: 'private',
-      rating: 4.9,
-      deals: 1,
       phone: '+998932207751',
     },
   },
@@ -203,8 +193,6 @@ export const CARS: Car[] = [
     seller: {
       name: 'Малика',
       type: 'private',
-      rating: 4.7,
-      deals: 2,
       phone: '+998946618205',
       telegram: 'malika_spark',
     },
@@ -234,8 +222,6 @@ export const CARS: Car[] = [
     seller: {
       name: 'Жасур',
       type: 'private',
-      rating: 4.6,
-      deals: 4,
       phone: '+998935512408',
       telegram: 'jasur_cars',
     },
@@ -265,8 +251,6 @@ export const CARS: Car[] = [
     seller: {
       name: 'Olcha Motors',
       type: 'dealer',
-      rating: 4.8,
-      deals: 156,
       phone: '+998712330077',
       telegram: 'olcha_motors',
     },
@@ -296,8 +280,6 @@ export const CARS: Car[] = [
     seller: {
       name: 'Отабек',
       type: 'private',
-      rating: 4.3,
-      deals: 7,
       phone: '+998995503174',
       telegram: 'otabek_lacetti',
     },
@@ -327,8 +309,6 @@ export const CARS: Car[] = [
     seller: {
       name: 'Рустам',
       type: 'private',
-      rating: 4.7,
-      deals: 3,
       phone: '+998901000111',
       telegram: 'rustam_captiva',
     },
@@ -358,8 +338,6 @@ export const CARS: Car[] = [
     seller: {
       name: 'Санжар',
       type: 'private',
-      rating: 4.4,
-      deals: 6,
       phone: '+998889912630',
       telegram: 'sanjar_matiz',
     },
@@ -390,8 +368,6 @@ export const CARS: Car[] = [
     seller: {
       name: 'Avato Motors',
       type: 'dealer',
-      rating: 4.7,
-      deals: 214,
       phone: '+998712059090',
       telegram: 'avato_motors',
     },
@@ -421,8 +397,6 @@ export const CARS: Car[] = [
     seller: {
       name: 'Zoomrad Auto',
       type: 'dealer',
-      rating: 4.9,
-      deals: 68,
       phone: '+998712001515',
       telegram: 'zoomrad_auto',
     },
@@ -452,8 +426,6 @@ export const CARS: Car[] = [
     seller: {
       name: 'Бекзод',
       type: 'private',
-      rating: 4.5,
-      deals: 4,
       phone: '+998939911452',
       telegram: 'bekzod_r4',
     },
@@ -483,8 +455,6 @@ export const CARS: Car[] = [
     seller: {
       name: 'Улугбек',
       type: 'private',
-      rating: 4.8,
-      deals: 9,
       phone: '+998974412308',
       telegram: 'ulugbek_camry',
     },
@@ -514,8 +484,6 @@ export const CARS: Car[] = [
     seller: {
       name: 'Zoomrad Auto',
       type: 'dealer',
-      rating: 4.9,
-      deals: 68,
       phone: '+998712001515',
       telegram: 'zoomrad_auto',
     },
@@ -545,8 +513,6 @@ export const CARS: Car[] = [
     seller: {
       name: 'Olcha Motors',
       type: 'dealer',
-      rating: 4.8,
-      deals: 156,
       phone: '+998712330077',
       telegram: 'olcha_motors',
     },
@@ -577,8 +543,6 @@ export const CARS: Car[] = [
     seller: {
       name: 'Фарход',
       type: 'private',
-      rating: 4.2,
-      deals: 11,
       phone: '+998917765023',
     },
   },

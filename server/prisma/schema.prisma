@@ -98,8 +98,6 @@ model Seller {
   /// до него бот говорил только по-русски.
   lang Lang @default(ru)
 
-  rating Float @default(5)
-  deals  Int   @default(0)
 
   createdAt DateTime @default(now())
 

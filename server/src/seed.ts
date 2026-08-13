@@ -36,8 +36,6 @@ async function main() {
         type: car.seller.type,
         phone: car.seller.phone,
         telegramUsername: car.seller.telegram ?? null,
-        rating: car.seller.rating,
-        deals: car.seller.deals,
       },
     });
     sellerIdByPhone.set(key, seller.id);

@@ -279,13 +279,7 @@ export function CarDetailScreen({
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text style={styles.sellerName}>{car.seller.name}</Text>
-                    <Text style={styles.sellerMeta}>
-                      {t.sellerType[car.seller.type]} · {t.deals(car.seller.deals)}
-                    </Text>
-                  </View>
-                  <View style={styles.rating}>
-                    <Ionicons name="star" size={13} color={c.accent} />
-                    <Text style={styles.ratingText}>{car.seller.rating.toFixed(1)}</Text>
+                    <Text style={styles.sellerMeta}>{t.sellerType[car.seller.type]}</Text>
                   </View>
                 </View>
 
@@ -445,8 +439,6 @@ const makeStyles = (c: Palette) =>
     avatarText: { color: c.text, fontSize: 18, fontWeight: '800' },
     sellerName: { color: c.text, fontSize: 15, fontWeight: '700' },
     sellerMeta: { color: c.textDim, fontSize: 12, marginTop: 2 },
-    rating: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-    ratingText: { color: c.text, fontSize: 13, fontWeight: '700' },
     footer: {
       flexDirection: 'row',
       gap: 10,
