@@ -79,6 +79,7 @@ interface BotText {
   start: string;
   menuNew: string;
   menuMy: string;
+  menuLang: string;
   cancel: string;
   done: string;
   skip: string;
@@ -183,6 +184,7 @@ const ru: BotText = {
     'Это бот AvtoLike. Здесь размещают объявления, которые покупатели листают в приложении свайпами.',
   menuNew: 'Разместить объявление',
   menuMy: 'Мои объявления',
+  menuLang: '🌐 Язык',
   cancel: 'Отмена',
   done: 'Готово',
   skip: 'Пропустить',
@@ -277,6 +279,7 @@ const uz: BotText = {
     "Bu AvtoLike boti. Bu yerda e'lon joylashtiriladi, xaridorlar esa ularni ilovada surib ko'radi.",
   menuNew: "E'lon joylashtirish",
   menuMy: "Mening e'lonlarim",
+  menuLang: '🌐 Til',
   cancel: 'Bekor qilish',
   done: 'Tayyor',
   skip: "O'tkazish",
@@ -371,6 +374,7 @@ const uzc: BotText = {
     'Бу AvtoLike боти. Бу ерда эълон жойлаштирилади, харидорлар эса уларни иловада суриб кўради.',
   menuNew: 'Эълон жойлаштириш',
   menuMy: 'Менинг эълонларим',
+  menuLang: '🌐 Тил',
   cancel: 'Бекор қилиш',
   done: 'Тайёр',
   skip: 'Ўтказиш',

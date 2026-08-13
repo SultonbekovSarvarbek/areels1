@@ -615,8 +615,19 @@ function reset(ctx: BotContext): void {
   Object.assign(ctx.session, emptySession(), { profile, lang, langLoaded });
 }
 
+/**
+ * Язык — третьей кнопкой, а не только командой /lang: команду видно лишь в
+ * списке за синей кнопкой телеграма, и продавец, которому бот отвечает на чужом
+ * языке, туда не полезет.
+ */
 const menuKeyboard = (lang: Lang) =>
-  new Keyboard().text(TEXT[lang].menuNew).row().text(TEXT[lang].menuMy).resized();
+  new Keyboard()
+    .text(TEXT[lang].menuNew)
+    .row()
+    .text(TEXT[lang].menuMy)
+    .row()
+    .text(TEXT[lang].menuLang)
+    .resized();
 
 // ─── Язык ────────────────────────────────────────────────────────────────────
 
@@ -910,6 +921,10 @@ bot.on('message:text', async (ctx) => {
     }
     if (isButton(text, 'menuMy')) {
       await showMyListings(ctx);
+      return;
+    }
+    if (isButton(text, 'menuLang')) {
+      await askLang(ctx);
       return;
     }
     await ctx.reply(t.chooseAction, { reply_markup: menuKeyboard(s.lang) });
