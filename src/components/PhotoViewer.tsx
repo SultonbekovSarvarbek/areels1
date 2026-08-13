@@ -147,6 +147,23 @@ export function PhotoViewer({ photos, index, visible, onClose, onIndexChange }: 
   const [zoomed, setZoomed] = useState(false);
   const pager = useRef<ScrollView>(null);
 
+  /**
+   * Стартовый снимок фиксируем в момент открытия и больше не трогаем. Пока
+   * просмотрщик открыт, родитель сам догоняет наш current — и если смотреть на
+   * его index, ключ менялся бы после каждого листания, пересоздавая ScrollView
+   * прямо под пальцем. Заодно сбрасываем счётчик и зум на новый показ.
+   */
+  const [session, setSession] = useState({ id: 0, start: index });
+  const wasVisible = useRef(visible);
+  if (visible !== wasVisible.current) {
+    wasVisible.current = visible;
+    if (visible) {
+      setSession((s) => ({ id: s.id + 1, start: index }));
+      setCurrent(index);
+      setZoomed(false);
+    }
+  }
+
   const onScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
     const next = Math.round(e.nativeEvent.contentOffset.x / width);
     if (next === current) return;
@@ -172,7 +189,7 @@ export function PhotoViewer({ photos, index, visible, onClose, onIndexChange }: 
       onRequestClose={close}
       // Ключ пересоздаёт просмотрщик на каждое открытие: иначе ScrollView
       // остаётся на прошлом снимке, а зум — на прошлом масштабе.
-      key={visible ? `viewer-${index}` : 'viewer-closed'}
+      key={`viewer-${session.id}`}
     >
       {/* Внутри Modal своё дерево — без этой обёртки жесты сюда не доходят. */}
       <GestureHandlerRootView style={styles.root}>
@@ -183,11 +200,11 @@ export function PhotoViewer({ photos, index, visible, onClose, onIndexChange }: 
           scrollEnabled={!zoomed}
           showsHorizontalScrollIndicator={false}
           onMomentumScrollEnd={onScroll}
-          contentOffset={{ x: index * width, y: 0 }}
+          contentOffset={{ x: session.start * width, y: 0 }}
         >
-          {photos.map((uri) => (
+          {photos.map((uri, i) => (
             <ZoomablePhoto
-              key={uri}
+              key={`${i}-${uri}`}
               uri={uri}
               width={width}
               height={height}
