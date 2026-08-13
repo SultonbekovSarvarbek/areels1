@@ -74,7 +74,6 @@ function CarCardBase({ car, onPressDetails }: Props) {
         <View style={styles.chips}>
           <Chip icon="calendar-outline" label={String(car.year)} />
           <Chip icon="speedometer-outline" label={formatMileage(car.mileage, t.unitKm)} />
-          <Chip icon="shield-checkmark-outline" label={t.condition[car.condition]} />
           {/* Топливо на карточке показываем только у электро: остальным типам
               место в характеристиках, а электромобиль — сам по себе аргумент. */}
           {car.fuel === 'electric' && <Chip icon="flash-outline" label={t.fuel.electric} eco />}
