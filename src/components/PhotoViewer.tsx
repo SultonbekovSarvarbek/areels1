@@ -33,7 +33,6 @@ interface PhotoProps {
   /** Приближено ли фото — родитель по этому флагу отключает листание. */
   zoomed: boolean;
   onZoomChange: (zoomed: boolean) => void;
-  onRequestClose: () => void;
 }
 
 /**
@@ -42,7 +41,7 @@ interface PhotoProps {
  * Перетаскивание включается только вместе с зумом: неприближённое фото должно
  * листаться горизонтальным ScrollView, а активный Pan забрал бы касание себе.
  */
-function ZoomablePhoto({ uri, width, height, zoomed, onZoomChange, onRequestClose }: PhotoProps) {
+function ZoomablePhoto({ uri, width, height, zoomed, onZoomChange }: PhotoProps) {
   const scale = useSharedValue(1);
   const startScale = useSharedValue(1);
   const x = useSharedValue(0);
@@ -96,17 +95,14 @@ function ZoomablePhoto({ uri, width, height, zoomed, onZoomChange, onRequestClos
     });
 
   /**
-   * Одиночный тап закрывает просмотрщик — так же ведут себя галереи мессенджеров.
-   * Крестик в углу остаётся, но касания в этой области перехватывают жесты,
-   * поэтому единственным способом выхода он быть не может.
+   * Одиночный тап только возвращает приближённое фото в исходный размер и
+   * ничего не закрывает: выход — крестик в углу. Иначе просмотрщик схлопывался
+   * от случайного касания, пока фото разглядывают.
    */
   const singleTap = Gesture.Tap()
     .numberOfTaps(1)
     .onEnd(() => {
-      // Приближённое фото сначала возвращаем в исходный размер: закрыть его
-      // тапом значило бы терять то, что человек только что разглядывал.
       if (scale.value > ZOOM_EPSILON) reset();
-      else runOnJS(onRequestClose)();
     });
 
   // Exclusive, а не Race: одиночный тап ждёт, не окажется ли он первым из двух.
@@ -197,7 +193,6 @@ export function PhotoViewer({ photos, index, visible, onClose, onIndexChange }: 
               height={height}
               zoomed={zoomed}
               onZoomChange={setZoomed}
-              onRequestClose={close}
             />
           ))}
         </ScrollView>
