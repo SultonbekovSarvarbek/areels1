@@ -25,6 +25,7 @@ import { useT } from '../I18nContext';
 import { Dict } from '../i18n';
 import { formatEngine, formatMileage, formatPhone, formatPrice } from '../utils/format';
 import { PhotoProgress } from '../components/PhotoProgress';
+import { PhotoViewer } from '../components/PhotoViewer';
 
 const HERO_H = 340;
 
@@ -114,6 +115,7 @@ export function CarDetailScreen({
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const [photo, setPhoto] = useState(0);
+  const [viewer, setViewer] = useState(false);
   const gallery = useRef<ScrollView>(null);
 
   // Модалка не размонтируется между машинами — сбрасываем галерею руками.
@@ -146,13 +148,16 @@ export function CarDetailScreen({
                   style={StyleSheet.absoluteFill}
                 >
                   {car.photos.map((uri) => (
-                    <Image
-                      key={uri}
-                      source={{ uri }}
-                      style={[styles.heroPhoto, { width }]}
-                      contentFit="cover"
-                      cachePolicy="memory-disk"
-                    />
+                    // Тап открывает снимок целиком: в шапке он обрезан по высоте,
+                    // и разглядеть машину по нему нельзя.
+                    <Pressable key={uri} onPress={() => setViewer(true)}>
+                      <Image
+                        source={{ uri }}
+                        style={[styles.heroPhoto, { width }]}
+                        contentFit="cover"
+                        cachePolicy="memory-disk"
+                      />
+                    </Pressable>
                   ))}
                 </ScrollView>
                 <LinearGradient
@@ -283,31 +288,8 @@ export function CarDetailScreen({
                   </View>
                 </View>
 
-                <Pressable
-                  style={({ pressed }) => [styles.contact, pressed && styles.contactPressed]}
-                  onPress={() => openLink(`tel:${car.seller.phone}`, t)}
-                >
-                  <Ionicons name="call-outline" size={18} color={c.textDim} />
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.contactLabel}>{t.phone}</Text>
-                    <Text style={styles.contactValue}>{formatPhone(car.seller.phone)}</Text>
-                  </View>
-                  <Ionicons name="chevron-forward" size={16} color={c.textFaint} />
-                </Pressable>
-
-                {car.seller.telegram && (
-                  <Pressable
-                    style={({ pressed }) => [styles.contact, pressed && styles.contactPressed]}
-                    onPress={() => openLink(`https://t.me/${car.seller.telegram}`, t)}
-                  >
-                    <Ionicons name="paper-plane-outline" size={18} color={c.tg} />
-                    <View style={{ flex: 1 }}>
-                      <Text style={styles.contactLabel}>Telegram</Text>
-                      <Text style={styles.contactValue}>@{car.seller.telegram}</Text>
-                    </View>
-                    <Ionicons name="chevron-forward" size={16} color={c.textFaint} />
-                  </Pressable>
-                )}
+                {/* Связаться можно только кнопками в футере: строками здесь
+                    и телефон, и телеграм дублировали их один в один. */}
               </View>
             </ScrollView>
 
@@ -344,6 +326,18 @@ export function CarDetailScreen({
                 />
               </Pressable>
             </View>
+
+            <PhotoViewer
+              photos={car.photos}
+              index={photo}
+              visible={viewer}
+              onClose={() => setViewer(false)}
+              // Долистал в полноэкранном — шапка под ним показывает тот же снимок.
+              onIndexChange={(i) => {
+                setPhoto(i);
+                gallery.current?.scrollTo({ x: i * width, animated: false });
+              }}
+            />
           </>
         )}
       </View>
@@ -476,19 +470,6 @@ const makeStyles = (c: Palette) =>
       borderColor: c.tg,
       backgroundColor: fixed.tgSoft,
     },
-    contact: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 12,
-      marginTop: 8,
-      backgroundColor: c.card,
-      borderRadius: radius.md,
-      borderWidth: 1,
-      borderColor: c.border,
-      paddingHorizontal: 14,
-      paddingVertical: 12,
-    },
+    /** Осталась от строк контактов — гасит кнопку предложения при нажатии. */
     contactPressed: { opacity: 0.7 },
-    contactLabel: { color: c.textFaint, fontSize: 11, textTransform: 'uppercase', fontWeight: '700' },
-    contactValue: { color: c.text, fontSize: 15, fontWeight: '700', marginTop: 2 },
   });

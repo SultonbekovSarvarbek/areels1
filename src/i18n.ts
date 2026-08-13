@@ -57,7 +57,6 @@ interface Dict {
   sYear: string;
   description: string;
   seller: string;
-  phone: string;
   offerMake: string;
   offerMadeFor: (price: string) => string;
   offerTapToChange: string;
@@ -196,7 +195,6 @@ const ru: Dict = {
   sYear: 'Год',
   description: 'Описание',
   seller: 'Продавец',
-  phone: 'Телефон',
   offerMake: 'Предложить свою цену',
   offerMadeFor: (price) => `Вы предложили ${price}`,
   offerTapToChange: 'Нажмите, чтобы изменить',
@@ -348,7 +346,6 @@ const uz: Dict = {
   sYear: 'Yil',
   description: 'Tavsif',
   seller: 'Sotuvchi',
-  phone: 'Telefon',
   offerMake: "O'z narxingizni taklif qiling",
   offerMadeFor: (price) => `Siz ${price} taklif qildingiz`,
   offerTapToChange: "O'zgartirish uchun bosing",
@@ -502,7 +499,6 @@ const uzc: Dict = {
   sYear: 'Йил',
   description: 'Тавсиф',
   seller: 'Сотувчи',
-  phone: 'Телефон',
   offerMake: 'Ўз нархингизни таклиф қилинг',
   offerMadeFor: (price) => `Сиз ${price} таклиф қилдингиз`,
   offerTapToChange: 'Ўзгартириш учун босинг',
