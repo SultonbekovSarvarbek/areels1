@@ -30,6 +30,8 @@ import type {
   SellerType,
   Transmission,
 } from '../../src/types.ts';
+import type { ListingStatus } from '@prisma/client';
+
 import { db } from './db.ts';
 import { botToken } from './env.ts';
 import { hidePlates } from './plate.ts';
@@ -104,6 +106,8 @@ interface Draft {
   color: string;
   condition: Condition;
   owners: number;
+  /** Описание тонировки; null — тонировки нет. */
+  tint: string | null;
   negotiable: boolean;
   description: string;
 }
@@ -493,6 +497,35 @@ const STEPS: Record<string, Step> = {
       s.draft.color = value;
     },
   }),
+  /**
+   * «Нет» закрывает вопрос сразу, «Есть» переводит шаг в свободный ввод — какая
+   * именно тонировка, продавец опишет словами: плёнки, проценты и «задняя
+   * полусфера» в перечисление не укладываются.
+   */
+  tint: {
+    prompt: (lang) => TEXT[lang].askTint,
+    keyboard: (lang) => keyboard([TEXT[lang].tintYes, TEXT[lang].tintNo], 2, lang),
+    apply: (text, s) => {
+      const { lang } = s;
+
+      if (!s.freeInput) {
+        if (isButton(text, 'tintNo')) {
+          s.draft.tint = null;
+          return null;
+        }
+        if (isButton(text, 'tintYes')) {
+          s.freeInput = true;
+          return { text: TEXT[lang].askTintFree, keyboard: textKeyboard(lang) };
+        }
+        return TEXT[lang].chooseButton;
+      }
+
+      const value = text.trim().replace(/\s+/g, ' ');
+      if (value.length < 2 || value.length > 100) return TEXT[lang].errTint;
+      s.draft.tint = value;
+      return null;
+    },
+  },
   negotiable: {
     prompt: (lang) => TEXT[lang].askNegotiable,
     keyboard: negotiableChoice.keyboard,
@@ -541,6 +574,7 @@ const CAR_STEPS = [
   'drive',
   'engine',
   'color',
+  'tint',
   'negotiable',
   'description',
   'photos',
@@ -579,6 +613,7 @@ function summary(s: SessionData): string {
     `${d.mileage.toLocaleString('ru-RU')} ${t.unitKm} · ${e.condition[d.condition]} · ${e.city[d.city]}`,
     `${e.bodyType[d.bodyType]} · ${e.fuel[d.fuel]} · ${e.transmission[d.transmission]} · ${e.drive[d.drive]}`,
     `${d.engine} ${t.unitL} · ${d.color} · ${t.owners(d.owners)}`,
+    `${t.summaryTint}: ${d.tint ?? t.tintNo}`,
     d.description ? `\n${d.description}` : '',
     `\n${t.summaryPhotos}: ${s.photos.length}`,
     `${t.summarySeller}: ${s.profile.name}, ${s.profile.phone}`,
@@ -693,6 +728,7 @@ async function publish(ctx: BotContext): Promise<void> {
       color: d.color,
       condition: d.condition,
       owners: d.owners,
+      tint: d.tint,
       tags: [],
       negotiable: d.negotiable,
       description: d.description,
@@ -710,10 +746,30 @@ async function publish(ctx: BotContext): Promise<void> {
 
 // ─── Мои объявления ──────────────────────────────────────────────────────────
 
-function listingKeyboard(id: string, archived: boolean, lang: Lang): InlineKeyboard {
-  return new InlineKeyboard()
-    .text(archived ? TEXT[lang].btnShow : TEXT[lang].btnHide, `${archived ? 'pub' : 'arc'}:${id}`)
-    .text(TEXT[lang].btnDelete, `del:${id}`);
+function listingKeyboard(id: string, status: ListingStatus, lang: Lang): InlineKeyboard {
+  const kb = new InlineKeyboard();
+
+  // Снимать с показа и возвращать можно только то, что модерацию уже прошло:
+  // объявление на проверке в каталоге и так не показано, а отклонённое —
+  // тем более. Им остаётся одно действие: удалить.
+  if (status === 'published' || status === 'archived') {
+    const archived = status === 'archived';
+    kb.text(archived ? TEXT[lang].btnShow : TEXT[lang].btnHide, `${archived ? 'pub' : 'arc'}:${id}`);
+  }
+
+  return kb.text(TEXT[lang].btnDelete, `del:${id}`);
+}
+
+/** Приписка под ценой: чем объявление сейчас является для продавца. */
+function statusNote(
+  status: ListingStatus,
+  rejectionReason: string | null,
+  lang: Lang,
+): string {
+  if (status === 'archived') return TEXT[lang].myArchived;
+  if (status === 'pending') return TEXT[lang].myPending;
+  if (status === 'rejected') return TEXT[lang].myRejected(rejectionReason ?? '—');
+  return '';
 }
 
 async function showMyListings(ctx: BotContext): Promise<void> {
@@ -731,13 +787,13 @@ async function showMyListings(ctx: BotContext): Promise<void> {
   }
 
   for (const listing of listings) {
-    const archived = listing.status === 'archived';
+    const note = statusNote(listing.status, listing.rejectionReason, lang);
     const title = `<b>${listing.brand} ${listing.model}, ${listing.year}</b>\n${money(listing.price)}${
-      archived ? `\n<i>${TEXT[lang].myArchived}</i>` : ''
+      note ? `\n<i>${note}</i>` : ''
     }`;
     await ctx.reply(title, {
       parse_mode: 'HTML',
-      reply_markup: listingKeyboard(listing.id, archived, lang),
+      reply_markup: listingKeyboard(listing.id, listing.status, lang),
     });
   }
 }
@@ -987,7 +1043,7 @@ bot.on('callback_query:data', async (ctx) => {
     await db.listing.update({ where: { id }, data: { status } });
     await ctx.answerCallbackQuery(action === 'arc' ? TEXT[lang].cbHidden : TEXT[lang].cbShown);
     await ctx.editMessageReplyMarkup({
-      reply_markup: listingKeyboard(id, status === 'archived', lang),
+      reply_markup: listingKeyboard(id, status, lang),
     });
     return;
   }

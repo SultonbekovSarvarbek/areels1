@@ -23,9 +23,23 @@ export const env = {
     secretKey: process.env.S3_SECRET_KEY ?? 'minioadmin',
     publicUrl: process.env.S3_PUBLIC_URL ?? 'http://localhost:9000/listings',
   },
+
+  /**
+   * Пароль от админки. Пустой — модерация недоступна: роуты отвечают 503, а не
+   * пускают всех подряд. Так забытая переменная не открывает панель наружу.
+   */
+  adminPassword: process.env.ADMIN_PASSWORD ?? '',
 };
 
 /** Токен бота нужен только боту — API поднимается и без него. */
 export function botToken(): string {
   return required('BOT_TOKEN');
+}
+
+/**
+ * Тот же токен нужен API, чтобы написать продавцу об итогах модерации. Здесь он
+ * необязателен: без него объявление всё равно одобрится, просто молча.
+ */
+export function optionalBotToken(): string | null {
+  return process.env.BOT_TOKEN ?? null;
 }

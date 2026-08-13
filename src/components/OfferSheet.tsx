@@ -13,7 +13,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Car } from '../types';
-import { Palette, fixed, radius } from '../theme';
+import { Palette, radius } from '../theme';
 import { useColors } from '../ThemeContext';
 import { useT } from '../I18nContext';
 import { formatPrice } from '../utils/format';
@@ -191,7 +191,7 @@ const makeStyles = (c: Palette) =>
       marginTop: 18,
     },
     primaryOff: { opacity: 0.4 },
-    primaryText: { color: fixed.onBright, fontSize: 16, fontWeight: '800' },
+    primaryText: { color: c.onBright, fontSize: 16, fontWeight: '800' },
     note: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 12 },
     noteText: { color: c.textDim, fontSize: 12, flex: 1, lineHeight: 16 },
   });

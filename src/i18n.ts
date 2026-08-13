@@ -21,6 +21,7 @@ interface Dict {
   stampSkip: string;
   stampLike: string;
   details: string;
+  showPhone: string;
   remaining: (left: number, total: number) => string;
   noAds: string;
   deckEmptyTitle: string;
@@ -162,6 +163,7 @@ const ru: Dict = {
   stampSkip: 'ПРОПУСК',
   stampLike: 'НРАВИТСЯ',
   details: 'Подробнее',
+  showPhone: 'Показать номер',
   remaining: (left, total) => `Осталось ${left} из ${total}`,
   noAds: 'Нет объявлений',
   deckEmptyTitle: 'Ничего не найдено',
@@ -312,6 +314,7 @@ const uz: Dict = {
   stampSkip: "O'TKAZISH",
   stampLike: 'YOQDI',
   details: 'Batafsil',
+  showPhone: "Raqamni ko'rsatish",
   remaining: (left, total) => `${total} tadan ${left} ta qoldi`,
   noAds: "E'lonlar yo'q",
   deckEmptyTitle: 'Hech narsa topilmadi',
@@ -466,6 +469,7 @@ const uzc: Dict = {
   stampSkip: 'ЎТКАЗИШ',
   stampLike: 'ЁҚДИ',
   details: 'Батафсил',
+  showPhone: 'Рақамни кўрсатиш',
   remaining: (left, total) => `${total} тадан ${left} та қолди`,
   noAds: 'Эълонлар йўқ',
   deckEmptyTitle: 'Ҳеч нарса топилмади',

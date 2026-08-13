@@ -16,11 +16,20 @@ interface Props {
   onPressDetails?: (car: Car) => void;
 }
 
-function Chip({ icon, label }: { icon: React.ComponentProps<typeof Ionicons>['name']; label: string }) {
+function Chip({
+  icon,
+  label,
+  eco,
+}: {
+  icon: React.ComponentProps<typeof Ionicons>['name'];
+  label: string;
+  /** Зелёный чип — им помечен электромобиль, чтобы его было видно в колоде. */
+  eco?: boolean;
+}) {
   return (
-    <View style={styles.chip}>
-      <Ionicons name={icon} size={13} color={fixed.onPhoto} />
-      <Text style={styles.chipText}>{label}</Text>
+    <View style={[styles.chip, eco && styles.chipEco]}>
+      <Ionicons name={icon} size={13} color={eco ? fixed.ecoText : fixed.onPhoto} />
+      <Text style={[styles.chipText, eco && styles.chipTextEco]}>{label}</Text>
     </View>
   );
 }
@@ -47,9 +56,6 @@ function CarCardBase({ car, onPressDetails }: Props) {
 
       <View style={styles.topRow}>
         <BrandBadge brand={car.brand} />
-        <View style={styles.yearBadge}>
-          <Text style={styles.yearText}>{car.year}</Text>
-        </View>
       </View>
 
       <LinearGradient
@@ -66,8 +72,12 @@ function CarCardBase({ car, onPressDetails }: Props) {
         </Text>
 
         <View style={styles.chips}>
+          <Chip icon="calendar-outline" label={String(car.year)} />
           <Chip icon="speedometer-outline" label={formatMileage(car.mileage, t.unitKm)} />
           <Chip icon="shield-checkmark-outline" label={t.condition[car.condition]} />
+          {/* Топливо на карточке показываем только у электро: остальным типам
+              место в характеристиках, а электромобиль — сам по себе аргумент. */}
+          {car.fuel === 'electric' && <Chip icon="flash-outline" label={t.fuel.electric} eco />}
           <Chip icon="location-outline" label={t.city[car.city]} />
           <Chip
             icon={car.negotiable ? 'pricetag-outline' : 'lock-closed-outline'}
@@ -75,13 +85,16 @@ function CarCardBase({ car, onPressDetails }: Props) {
           />
         </View>
 
+        {/* Самого номера в колоде нет — он приманка: плашка обещает телефон,
+            а тап уводит в карточку, где номер и лежит. */}
         <Pressable
           style={({ pressed }) => [styles.detailsBtn, pressed && styles.detailsBtnPressed]}
           onPress={() => onPressDetails?.(car)}
           hitSlop={8}
+          accessibilityLabel={t.details}
         >
-          <Ionicons name="information-circle-outline" size={16} color={fixed.onPhoto} />
-          <Text style={styles.detailsText}>{t.details}</Text>
+          <Ionicons name="call-outline" size={15} color={fixed.ecoText} />
+          <Text style={styles.detailsPhone}>{t.showPhone}</Text>
         </Pressable>
       </View>
     </View>
@@ -95,24 +108,13 @@ const styles = StyleSheet.create({
   card: { flex: 1, borderRadius: radius.xl, overflow: 'hidden', borderWidth: 1 },
   topScrim: { position: 'absolute', top: 0, left: 0, right: 0, height: 120 },
   bottomScrim: { position: 'absolute', bottom: 0, left: 0, right: 0, height: '62%' },
+  // Год переехал к остальным чипам вниз, поэтому в строке остался один значок.
   topRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingTop: 16,
   },
-  yearBadge: {
-    // Высота совпадает с BrandBadge, иначе бейджи в строке разной толщины.
-    height: 30,
-    justifyContent: 'center',
-    backgroundColor: fixed.glass,
-    paddingHorizontal: 11,
-    borderRadius: radius.pill,
-    borderWidth: 1,
-    borderColor: fixed.glassBorder,
-  },
-  yearText: { color: fixed.onPhoto, fontSize: 12, fontWeight: '700' },
   info: { position: 'absolute', left: 18, right: 18, bottom: 18, gap: 8 },
   price: { color: fixed.onPhoto, fontSize: 32, fontWeight: '800', letterSpacing: -0.5 },
   // Акцент на модели, а не на марке: марка уже показана значком в углу фото.
@@ -128,19 +130,25 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 6,
   },
+  chipEco: { backgroundColor: fixed.ecoChip, borderWidth: 1, borderColor: fixed.ecoBorder },
   chipText: { color: fixed.onPhoto, fontSize: 12, fontWeight: '600' },
+  chipTextEco: { color: fixed.ecoText, fontWeight: '700' },
+  // Зелёная плашка, как у чипа «Электро»: после цены это самое заметное место
+  // на карточке, и оно уводит в детали.
   detailsBtn: {
     marginTop: 6,
     alignSelf: 'flex-start',
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    justifyContent: 'center',
+    gap: 7,
     borderRadius: radius.pill,
     borderWidth: 1,
-    borderColor: fixed.glassBorderStrong,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+    borderColor: fixed.ecoBorder,
+    backgroundColor: fixed.ecoChip,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
   },
   detailsBtnPressed: { backgroundColor: fixed.glassPressed },
-  detailsText: { color: fixed.onPhoto, fontSize: 13, fontWeight: '600' },
+  detailsPhone: { color: fixed.ecoText, fontSize: 15, fontWeight: '800', letterSpacing: 0.2 },
 });

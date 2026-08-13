@@ -1,10 +1,14 @@
 import Fastify from 'fastify';
 
+import { registerAdmin } from './admin.ts';
 import { db, listingInclude } from './db.ts';
 import { env } from './env.ts';
 import { toCar, type ListingRow } from './mapper.ts';
 
 const app = Fastify({ logger: true });
+
+// Модерация: панель и её API живут на том же сервере, что и каталог.
+registerAdmin(app);
 
 /**
  * Каталог отдаётся целиком, без пагинации и серверной фильтрации, — так решено
@@ -13,6 +17,9 @@ const app = Fastify({ logger: true });
  * Примерно до пары тысяч объявлений это дешевле, дальше понадобится и то и другое.
  *
  * Объявления без фото не отдаём: клиент индексирует photos[0] без проверки.
+ *
+ * status: 'published' — это ещё и граница модерации: всё, что пришло из бота,
+ * лежит в pending и в каталог не попадает, пока его не одобрят в /admin.
  */
 async function publishedCars(): Promise<ListingRow[]> {
   const rows = await db.listing.findMany({

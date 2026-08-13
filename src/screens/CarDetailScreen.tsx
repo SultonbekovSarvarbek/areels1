@@ -79,10 +79,13 @@ function Spec({
   icon,
   label,
   value,
+  eco,
 }: {
   icon: React.ComponentProps<typeof Ionicons>['name'];
   label: string;
   value: string;
+  /** Зелёным помечаем электромобиль — так же, как чипом в колоде. */
+  eco?: boolean;
 }) {
   const c = useColors();
   const t = useT();
@@ -90,10 +93,10 @@ function Spec({
 
   return (
     <View style={styles.spec}>
-      <Ionicons name={icon} size={16} color={c.textFaint} />
+      <Ionicons name={icon} size={16} color={eco ? c.like : c.textFaint} />
       <View>
         <Text style={styles.specLabel}>{label}</Text>
-        <Text style={styles.specValue}>{value}</Text>
+        <Text style={[styles.specValue, eco && styles.specValueEco]}>{value}</Text>
       </View>
     </View>
   );
@@ -183,6 +186,8 @@ export function CarDetailScreen({
                     <Pressable style={styles.roundBtn} onPress={onClose} hitSlop={12}>
                       <Ionicons name="chevron-down" size={22} color={fixed.onPhoto} />
                     </Pressable>
+                    {/* Сердце живёт только в нижней панели: две кнопки одного
+                        действия на экране читались как разные. */}
                     <View style={styles.heroActions}>
                       <Pressable
                         style={styles.roundBtn}
@@ -191,18 +196,6 @@ export function CarDetailScreen({
                         accessibilityLabel={t.shareLabel}
                       >
                         <Ionicons name="share-outline" size={21} color={fixed.onPhoto} />
-                      </Pressable>
-                      <Pressable
-                        style={styles.roundBtn}
-                        onPress={() => onToggleLike(car)}
-                        hitSlop={12}
-                        accessibilityLabel={isLiked ? t.favRemove : t.favAdd}
-                      >
-                        <Ionicons
-                          name={isLiked ? 'heart' : 'heart-outline'}
-                          size={22}
-                          color={isLiked ? c.like : fixed.onPhoto}
-                        />
                       </Pressable>
                     </View>
                   </View>
@@ -259,7 +252,13 @@ export function CarDetailScreen({
                   />
                   <Spec icon="git-compare-outline" label={t.sTransmission} value={t.transmission[car.transmission]} />
                   <Spec icon="car-sport-outline" label={t.sDrive} value={t.drive[car.drive]} />
-                  <Spec icon="water-outline" label={t.sFuel} value={t.fuel[car.fuel]} />
+                  {/* У электро своя иконка: капля топлива ему не подходит. */}
+                  <Spec
+                    icon={car.fuel === 'electric' ? 'battery-charging-outline' : 'water-outline'}
+                    label={t.sFuel}
+                    value={t.fuel[car.fuel]}
+                    eco={car.fuel === 'electric'}
+                  />
                   <Spec icon="cube-outline" label={t.sBody} value={t.bodyType[car.bodyType]} />
                   <Spec icon="color-palette-outline" label={t.sColor} value={car.color} />
                   <Spec
@@ -298,7 +297,7 @@ export function CarDetailScreen({
                 style={styles.callBtn}
                 onPress={() => openLink(`tel:${car.seller.phone}`, t)}
               >
-                <Ionicons name="call" size={18} color={fixed.onBright} />
+                <Ionicons name="call" size={18} color={c.onBright} />
                 <Text style={styles.callText} numberOfLines={1}>
                   {formatPhone(car.seller.phone)}
                 </Text>
@@ -411,6 +410,7 @@ const makeStyles = (c: Palette) =>
     spec: { width: '50%', flexDirection: 'row', alignItems: 'center', gap: 10 },
     specLabel: { color: c.textFaint, fontSize: 11, textTransform: 'uppercase', fontWeight: '700' },
     specValue: { color: c.text, fontSize: 15, fontWeight: '600' },
+    specValueEco: { color: c.like, fontWeight: '700' },
     description: { color: c.textDim, fontSize: 15, lineHeight: 22 },
     seller: {
       flexDirection: 'row',
@@ -452,7 +452,7 @@ const makeStyles = (c: Palette) =>
       borderRadius: radius.pill,
       paddingVertical: 15,
     },
-    callText: { color: fixed.onBright, fontSize: 15, fontWeight: '800' },
+    callText: { color: c.onBright, fontSize: 15, fontWeight: '800' },
     iconBtn: {
       width: 52,
       alignItems: 'center',

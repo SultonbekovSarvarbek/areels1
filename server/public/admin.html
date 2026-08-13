@@ -1,0 +1,416 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex" />
+    <title>AvtoLike — модерация</title>
+    <style>
+      /* Панель одноразовая по духу: ни сборки, ни зависимостей — один файл,
+         который правится прямо на сервере. Тема тёмная, как у приложения. */
+      :root {
+        --bg: #0b0d12;
+        --elevated: #151922;
+        --card: #1b202b;
+        --border: #262c3a;
+        --text: #f2f5fa;
+        --dim: #98a1b3;
+        --faint: #5e6779;
+        --green: #2bd97c;
+        --red: #ff5f6d;
+        --amber: #ffb020;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font: 15px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      }
+      header {
+        position: sticky;
+        top: 0;
+        z-index: 5;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        flex-wrap: wrap;
+        padding: 14px 20px;
+        background: var(--elevated);
+        border-bottom: 1px solid var(--border);
+      }
+      h1 { font-size: 17px; margin: 0; letter-spacing: -0.2px; }
+      .tabs { display: flex; gap: 8px; flex-wrap: wrap; }
+      .tab {
+        padding: 7px 14px;
+        border-radius: 999px;
+        border: 1px solid var(--border);
+        background: transparent;
+        color: var(--dim);
+        cursor: pointer;
+        font: inherit;
+      }
+      .tab.active { background: var(--text); color: var(--bg); border-color: var(--text); font-weight: 700; }
+      .tab b { font-weight: 800; }
+      .spacer { flex: 1; }
+      button.link { background: none; border: 0; color: var(--dim); cursor: pointer; font: inherit; }
+      main { padding: 20px; max-width: 1100px; margin: 0 auto; }
+      .empty { color: var(--faint); text-align: center; padding: 60px 0; }
+
+      .item {
+        display: grid;
+        grid-template-columns: 320px 1fr;
+        gap: 20px;
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 16px;
+        margin-bottom: 16px;
+      }
+      @media (max-width: 780px) { .item { grid-template-columns: 1fr; } }
+
+      .photos { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; }
+      .photos img {
+        height: 200px;
+        border-radius: 10px;
+        cursor: zoom-in;
+        background: var(--elevated);
+      }
+      .title { font-size: 19px; font-weight: 800; margin: 0 0 2px; }
+      .price { font-size: 22px; font-weight: 800; margin: 0 0 10px; }
+      .specs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+      .spec {
+        background: var(--elevated);
+        border: 1px solid var(--border);
+        border-radius: 999px;
+        padding: 5px 11px;
+        font-size: 13px;
+        color: var(--dim);
+      }
+      .spec.eco { color: var(--green); border-color: rgba(43, 217, 124, 0.5); }
+      .desc { color: var(--dim); white-space: pre-wrap; margin-bottom: 12px; }
+      .seller { font-size: 14px; color: var(--dim); margin-bottom: 14px; }
+      .seller b { color: var(--text); }
+      .meta { color: var(--faint); font-size: 12px; margin-bottom: 12px; }
+      .reason { color: var(--red); font-size: 14px; margin-bottom: 12px; }
+
+      .actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+      .rejectBox { display: none; margin-top: 12px; }
+      .rejectBox.open { display: block; }
+      .rejectBox textarea {
+        width: 100%;
+        min-height: 64px;
+        resize: vertical;
+        padding: 10px 12px;
+        border-radius: 10px;
+        border: 1px solid var(--border);
+        background: var(--elevated);
+        color: var(--text);
+        font: inherit;
+        margin-bottom: 8px;
+      }
+      .hint { color: var(--faint); font-size: 12px; margin-bottom: 8px; }
+      .btn {
+        border: 0;
+        border-radius: 999px;
+        padding: 10px 18px;
+        font: inherit;
+        font-weight: 700;
+        cursor: pointer;
+      }
+      .btn.approve { background: var(--green); color: #06210f; }
+      .btn.reject { background: transparent; color: var(--red); border: 1px solid var(--red); }
+      .btn.delete { background: transparent; color: var(--faint); border: 1px solid var(--border); }
+      .btn:disabled { opacity: 0.5; cursor: default; }
+
+      /* Вход */
+      .login { max-width: 340px; margin: 18vh auto; text-align: center; }
+      .login input {
+        width: 100%;
+        padding: 13px 16px;
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        background: var(--card);
+        color: var(--text);
+        font: inherit;
+        margin: 16px 0 12px;
+      }
+      .login .btn { width: 100%; background: var(--green); color: #06210f; }
+      .error { color: var(--red); font-size: 14px; min-height: 20px; margin-top: 10px; }
+
+      /* Просмотр фото целиком */
+      .lightbox {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.92);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        cursor: zoom-out;
+        z-index: 10;
+      }
+      .lightbox img { max-width: 96vw; max-height: 96vh; }
+    </style>
+  </head>
+  <body>
+    <div id="app"></div>
+    <div class="lightbox" id="lightbox" onclick="this.style.display='none'"><img alt="" /></div>
+
+    <script>
+      const CITY = {
+        tashkent: 'Ташкент', samarkand: 'Самарканд', bukhara: 'Бухара', namangan: 'Наманган',
+        andijan: 'Андижан', fergana: 'Фергана', karshi: 'Карши', jizzakh: 'Джизак', termez: 'Термез',
+      };
+      const BODY = { sedan: 'Седан', hatchback: 'Хэтчбек', crossover: 'Кроссовер', suv: 'Внедорожник', minivan: 'Минивэн' };
+      const FUEL = { petrol: 'Бензин', gas: 'Газ-бензин', diesel: 'Дизель', hybrid: 'Гибрид', electric: 'Электро' };
+      const TRANSMISSION = { auto: 'АКПП', manual: 'МКПП', robot: 'Робот', cvt: 'Вариатор' };
+      const DRIVE = { fwd: 'Передний', rwd: 'Задний', awd: 'Полный' };
+      const CONDITION = { excellent: 'Отличное', good: 'Хорошее', average: 'Среднее', needsRepair: 'Требует ремонта' };
+      const SELLER = { private: 'Частник', dealer: 'Автосалон' };
+      const TAB_TITLE = { pending: 'На проверке', published: 'В каталоге', rejected: 'Отклонённые', archived: 'Архив' };
+
+      const state = {
+        token: localStorage.getItem('avtolike_admin_token') || '',
+        status: 'pending',
+        counts: {},
+        listings: [],
+        error: '',
+      };
+
+      const app = document.getElementById('app');
+      const esc = (s) => String(s ?? '').replace(/[<>&"]/g, (ch) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;' })[ch]);
+      const money = (n) => '$' + n.toLocaleString('ru-RU');
+      const when = (iso) => new Date(iso).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+
+      async function api(path, options = {}) {
+        const response = await fetch(path, {
+          ...options,
+          headers: {
+            'content-type': 'application/json',
+            ...(state.token ? { authorization: 'Bearer ' + state.token } : {}),
+            ...options.headers,
+          },
+        });
+
+        if (response.status === 401) {
+          // Сессия живёт в памяти сервера: после его перезапуска нужен новый вход.
+          state.token = '';
+          localStorage.removeItem('avtolike_admin_token');
+          renderLogin('Сессия истекла, войдите заново');
+          throw new Error('unauthorized');
+        }
+
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(data.error || 'Ошибка ' + response.status);
+        return data;
+      }
+
+      function renderLogin(error = '') {
+        app.innerHTML = `
+          <div class="login">
+            <h1>AvtoLike — модерация</h1>
+            <input id="pass" type="password" placeholder="Пароль" autocomplete="current-password" />
+            <button class="btn" id="enter">Войти</button>
+            <div class="error">${esc(error)}</div>
+          </div>`;
+
+        const input = document.getElementById('pass');
+        const submit = async () => {
+          try {
+            const { token } = await api('/api/admin/login', {
+              method: 'POST',
+              body: JSON.stringify({ password: input.value }),
+            });
+            state.token = token;
+            localStorage.setItem('avtolike_admin_token', token);
+            load();
+          } catch (e) {
+            renderLogin(e.message);
+          }
+        };
+
+        document.getElementById('enter').onclick = submit;
+        input.onkeydown = (e) => { if (e.key === 'Enter') submit(); };
+        input.focus();
+      }
+
+      function specs(item) {
+        const list = [
+          item.year,
+          item.mileage.toLocaleString('ru-RU') + ' км',
+          CONDITION[item.condition],
+          item.owners ? item.owners + ' вл.' : null,
+          CITY[item.city],
+          BODY[item.bodyType],
+          TRANSMISSION[item.transmission],
+          DRIVE[item.drive],
+          item.engine + ' л' + (item.power ? ' · ' + item.power + ' л.с.' : ''),
+          item.color,
+          item.tint ? 'тонировка: ' + item.tint : null,
+          item.negotiable ? 'торг' : 'без торга',
+        ].filter(Boolean);
+
+        const fuel = `<span class="spec ${item.fuel === 'electric' ? 'eco' : ''}">${esc(FUEL[item.fuel])}</span>`;
+        return fuel + list.map((s) => `<span class="spec">${esc(s)}</span>`).join('');
+      }
+
+      function card(item) {
+        const photos = item.photos
+          .map((url) => `<img src="${esc(url)}" alt="" onclick="zoom('${esc(url)}')" />`)
+          .join('');
+
+        const seller = [
+          `<b>${esc(item.seller.name)}</b>`,
+          esc(SELLER[item.seller.type]),
+          esc(item.seller.phone),
+          item.seller.telegram ? '@' + esc(item.seller.telegram) : null,
+          'язык: ' + esc(item.seller.lang),
+        ].filter(Boolean).join(' · ');
+
+        const actions = [];
+        if (item.status !== 'published') actions.push(`<button class="btn approve" onclick="approve('${item.id}')">Одобрить</button>`);
+        if (item.status !== 'rejected') actions.push(`<button class="btn reject" onclick="openReject('${item.id}')">Отклонить</button>`);
+        actions.push(`<button class="btn delete" id="del-${item.id}" onclick="remove('${item.id}')">Удалить</button>`);
+
+        return `
+          <div class="item">
+            <div class="photos">${photos}</div>
+            <div>
+              <p class="title">${esc(item.brand)} ${esc(item.model)}</p>
+              <p class="price">${money(item.price)}</p>
+              <div class="specs">${specs(item)}</div>
+              ${item.description ? `<div class="desc">${esc(item.description)}</div>` : ''}
+              <div class="seller">${seller}</div>
+              ${item.rejectionReason ? `<div class="reason">Причина отказа: ${esc(item.rejectionReason)}</div>` : ''}
+              <div class="meta">Создано ${when(item.createdAt)}${item.moderatedAt ? ' · проверено ' + when(item.moderatedAt) : ''} · ${esc(item.id)}</div>
+              <div class="actions">${actions.join('')}</div>
+              <div class="rejectBox" id="rej-${item.id}">
+                <div class="hint">Причину увидит продавец в боте — напишите так, чтобы он понял, что исправить.</div>
+                <textarea id="reason-${item.id}" maxlength="300" placeholder="Например: на фото не видно машину целиком"></textarea>
+                <div class="actions">
+                  <button class="btn reject" onclick="reject('${item.id}')">Отклонить</button>
+                  <button class="btn delete" onclick="closeReject('${item.id}')">Отмена</button>
+                </div>
+              </div>
+            </div>
+          </div>`;
+      }
+
+      function render() {
+        const tabs = Object.entries(TAB_TITLE)
+          .map(([key, title]) => {
+            const count = state.counts[key] ?? 0;
+            return `<button class="tab ${state.status === key ? 'active' : ''}" onclick="go('${key}')">${title} <b>${count}</b></button>`;
+          })
+          .join('');
+
+        app.innerHTML = `
+          <header>
+            <h1>Модерация</h1>
+            <div class="tabs">${tabs}</div>
+            <div class="spacer"></div>
+            <button class="link" onclick="load()">Обновить</button>
+            <button class="link" onclick="logout()">Выйти</button>
+          </header>
+          <main>
+            ${state.error ? `<div class="error">${esc(state.error)}</div>` : ''}
+            ${state.listings.length ? state.listings.map(card).join('') : '<div class="empty">Здесь пусто</div>'}
+          </main>`;
+      }
+
+      async function load() {
+        if (!state.token) return renderLogin();
+        try {
+          const data = await api('/api/admin/listings?status=' + state.status);
+          state.counts = data.counts;
+          state.listings = data.listings;
+          state.error = '';
+          render();
+        } catch (e) {
+          if (e.message === 'unauthorized') return;
+          state.error = e.message;
+          render();
+        }
+      }
+
+      function go(status) { state.status = status; load(); }
+
+      function logout() {
+        state.token = '';
+        localStorage.removeItem('avtolike_admin_token');
+        renderLogin();
+      }
+
+      function zoom(url) {
+        const box = document.getElementById('lightbox');
+        box.querySelector('img').src = url;
+        box.style.display = 'flex';
+      }
+
+      async function approve(id) {
+        try {
+          await api('/api/admin/listings/' + id + '/approve', { method: 'POST' });
+          load();
+        } catch (e) { alert(e.message); }
+      }
+
+      function openReject(id) {
+        document.getElementById('rej-' + id).classList.add('open');
+        document.getElementById('reason-' + id).focus();
+      }
+
+      function closeReject(id) {
+        document.getElementById('rej-' + id).classList.remove('open');
+      }
+
+      async function reject(id) {
+        const reason = document.getElementById('reason-' + id).value.trim();
+        if (!reason) {
+          state.error = 'Без причины отклонять нельзя: продавцу нечего будет исправлять';
+          return render();
+        }
+        try {
+          await api('/api/admin/listings/' + id + '/reject', {
+            method: 'POST',
+            body: JSON.stringify({ reason }),
+          });
+          load();
+        } catch (e) {
+          state.error = e.message;
+          render();
+        }
+      }
+
+      /**
+       * Удаление необратимо, поэтому первое нажатие только предупреждает.
+       * Диалогов браузера избегаем: они вешают страницу до ответа.
+       */
+      async function remove(id) {
+        const button = document.getElementById('del-' + id);
+        if (button.dataset.armed !== 'yes') {
+          button.dataset.armed = 'yes';
+          button.textContent = 'Точно удалить?';
+          button.style.color = 'var(--red)';
+          button.style.borderColor = 'var(--red)';
+          setTimeout(() => {
+            if (!button.isConnected) return;
+            button.dataset.armed = '';
+            button.textContent = 'Удалить';
+            button.style.color = '';
+            button.style.borderColor = '';
+          }, 4000);
+          return;
+        }
+        try {
+          await api('/api/admin/listings/' + id, { method: 'DELETE' });
+          load();
+        } catch (e) {
+          state.error = e.message;
+          render();
+        }
+      }
+
+      load();
+    </script>
+  </body>
+</html>

@@ -12,7 +12,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
-import { Palette, fixed, radius } from '../theme';
+import { Palette, radius } from '../theme';
 import { useColors } from '../ThemeContext';
 import { useT } from '../I18nContext';
 import { formatPhone } from '../utils/format';
@@ -241,7 +241,7 @@ const makeStyles = (c: Palette) =>
       marginTop: 22,
     },
     primaryOff: { opacity: 0.4 },
-    primaryText: { color: fixed.onBright, fontSize: 16, fontWeight: '800' },
+    primaryText: { color: c.onBright, fontSize: 16, fontWeight: '800' },
     resend: { alignItems: 'center', paddingVertical: 14 },
     resendText: { color: c.textDim, fontSize: 14, fontWeight: '600' },
     resendOff: { color: c.textFaint },

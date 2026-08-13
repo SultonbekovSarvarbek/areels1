@@ -104,7 +104,7 @@ export function DeckScreen({
             <Text style={styles.emptyTitle}>{t.loadFailedTitle}</Text>
             <Text style={styles.emptyText}>{t.loadFailedText}</Text>
             <Pressable style={styles.emptyBtn} onPress={onRetry}>
-              <Ionicons name="refresh" size={18} color={fixed.onBright} />
+              <Ionicons name="refresh" size={18} color={c.onBright} />
               <Text style={styles.emptyBtnText}>{t.retry}</Text>
             </Pressable>
           </View>
@@ -116,7 +116,7 @@ export function DeckScreen({
               {t.deckEmptyText}
             </Text>
             <Pressable style={styles.emptyBtn} onPress={onOpenFilters}>
-              <Ionicons name="options-outline" size={18} color={fixed.onBright} />
+              <Ionicons name="options-outline" size={18} color={c.onBright} />
               <Text style={styles.emptyBtnText}>{t.changeFilters}</Text>
             </Pressable>
           </View>
@@ -202,7 +202,7 @@ const makeStyles = (c: Palette) =>
       alignItems: 'center',
       justifyContent: 'center',
     },
-    badgeText: { color: fixed.onBright, fontSize: 11, fontWeight: '900' },
+    badgeText: { color: c.onBright, fontSize: 11, fontWeight: '900' },
     deckArea: { flex: 1, paddingHorizontal: 16, paddingTop: 6, paddingBottom: 10 },
     footer: { paddingBottom: 6 },
     counter: { color: c.textFaint, fontSize: 12, fontWeight: '700', textAlign: 'center' },
@@ -225,5 +225,5 @@ const makeStyles = (c: Palette) =>
       paddingHorizontal: 22,
       paddingVertical: 14,
     },
-    emptyBtnText: { color: fixed.onBright, fontSize: 15, fontWeight: '800' },
+    emptyBtnText: { color: c.onBright, fontSize: 15, fontWeight: '800' },
   });

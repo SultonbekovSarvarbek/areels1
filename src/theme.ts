@@ -9,6 +9,11 @@ export interface Palette {
   like: string;
   skip: string;
   accent: string;
+  /**
+   * Текст и иконки на заливке like/accent. В палитре, а не в fixed: светлая тема
+   * затемняет сами заливки, и чёрная надпись на тёмно-зелёном перестаёт читаться.
+   */
+  onBright: string;
   tg: string;
   overlay: string;
 }
@@ -19,8 +24,6 @@ export interface Palette {
  * и если перекрасить их вместе с интерфейсом — надписи станут нечитаемыми.
  */
 export const fixed = {
-  /** Текст и иконки на заливке like/accent — она яркая в обеих темах. */
-  onBright: '#0B0D12',
   scrimTop: 'rgba(8,10,15,0.75)',
   scrimHero: 'rgba(11,13,18,0.8)',
   cardBottom: ['transparent', 'rgba(6,8,12,0.6)', 'rgba(6,8,12,0.97)'] as const,
@@ -35,6 +38,10 @@ export const fixed = {
   onPhotoDim: 'rgba(242,245,250,0.72)',
   /** Подложка кнопки Telegram — мягкий синий, читается на обеих темах. */
   tgSoft: 'rgba(34,158,217,0.14)',
+  /** Чип электромобиля на карточке: зелёный поверх фото, без оглядки на тему. */
+  ecoChip: 'rgba(43,217,124,0.22)',
+  ecoBorder: 'rgba(43,217,124,0.55)',
+  ecoText: '#5BE8A0',
 };
 
 const dark: Palette = {
@@ -48,6 +55,8 @@ const dark: Palette = {
   like: '#2BD97C',
   skip: '#8A94A8',
   accent: '#FFB020',
+  // Заливки тут светлые сами по себе, поэтому надпись на них тёмная.
+  onBright: '#0B0D12',
   tg: '#229ED9',
   overlay: 'rgba(6,8,12,0.86)',
 };
@@ -64,6 +73,7 @@ const light: Palette = {
   like: '#10A557',
   skip: '#6E7A90',
   accent: '#C97A00',
+  onBright: '#FFFFFF',
   tg: '#1B8FC7',
   overlay: 'rgba(12,16,24,0.45)',
 };

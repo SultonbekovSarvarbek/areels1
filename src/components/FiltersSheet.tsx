@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 
 import { BodyType, Filters, Transmission, emptyFilters } from '../types';
-import { Palette, fixed, radius } from '../theme';
+import { Palette, radius } from '../theme';
 import { useColors } from '../ThemeContext';
 import { useT } from '../I18nContext';
 import { PriceSlider } from './PriceSlider';
@@ -233,5 +233,5 @@ const makeStyles = (c: Palette) =>
       borderRadius: radius.pill,
       backgroundColor: c.like,
     },
-    applyText: { color: fixed.onBright, fontSize: 15, fontWeight: '800' },
+    applyText: { color: c.onBright, fontSize: 15, fontWeight: '800' },
   });

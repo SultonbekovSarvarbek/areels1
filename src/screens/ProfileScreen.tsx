@@ -4,7 +4,7 @@ import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Car, Offer, User } from '../types';
-import { Palette, fixed, radius } from '../theme';
+import { Palette, radius } from '../theme';
 import { useColors } from '../ThemeContext';
 import { useI18n } from '../I18nContext';
 import { Dict, LANGS } from '../i18n';
@@ -215,7 +215,7 @@ const makeStyles = (c: Palette) =>
       paddingHorizontal: 26,
       paddingVertical: 14,
     },
-    primaryText: { color: fixed.onBright, fontSize: 15, fontWeight: '800' },
+    primaryText: { color: c.onBright, fontSize: 15, fontWeight: '800' },
     list: { paddingHorizontal: 16, paddingBottom: 24, gap: 10 },
     card: {
       flexDirection: 'row',
@@ -235,7 +235,7 @@ const makeStyles = (c: Palette) =>
       alignItems: 'center',
       justifyContent: 'center',
     },
-    avatarText: { color: fixed.onBright, fontSize: 22, fontWeight: '900' },
+    avatarText: { color: c.onBright, fontSize: 22, fontWeight: '900' },
     name: { color: c.text, fontSize: 18, fontWeight: '800' },
     phone: { color: c.textDim, fontSize: 14, marginTop: 2 },
     stats: {

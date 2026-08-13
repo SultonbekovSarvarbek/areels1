@@ -126,6 +126,11 @@ interface BotText {
   askColor: string;
   askColorFree: string;
   errColor: string;
+  askTint: string;
+  tintYes: string;
+  tintNo: string;
+  askTintFree: string;
+  errTint: string;
   askNegotiable: string;
   bargainYes: string;
   bargainNo: string;
@@ -144,16 +149,22 @@ interface BotText {
 
   // Сводка и публикация
   summaryBargain: string;
+  summaryTint: string;
   summaryPhotos: string;
   summarySeller: string;
   owners: (n: number) => string;
   unitKm: string;
   unitL: string;
   published: (id: string) => string;
+  /** Итоги модерации — их шлёт API, а не бот: одобряют из админки. */
+  moderationApproved: (title: string) => string;
+  moderationRejected: (title: string, reason: string) => string;
 
   // Мои объявления
   myEmpty: string;
   myArchived: string;
+  myPending: string;
+  myRejected: (reason: string) => string;
   btnHide: string;
   btnShow: string;
   btnDelete: string;
@@ -231,6 +242,11 @@ const ru: BotText = {
   askColor: 'Цвет',
   askColorFree: 'Напишите цвет. Например: Тёмно-синий',
   errColor: 'Цвет от 3 до 20 символов.',
+  askTint: 'Тонировка есть?',
+  tintYes: 'Есть',
+  tintNo: 'Нет',
+  askTintFree: 'Напишите, какая тонировка. Например: передние стёкла и задняя полусфера, 70%',
+  errTint: 'Опишите тонировку от 2 до 100 символов.',
   askNegotiable: 'Торг возможен?',
   bargainYes: 'Торг уместен',
   bargainNo: 'Цена фиксированная',
@@ -249,16 +265,22 @@ const ru: BotText = {
   photoDownloadFailed: 'Не удалось скачать фото, пришлите его ещё раз.',
 
   summaryBargain: 'торг',
+  summaryTint: 'Тонировка',
   summaryPhotos: 'Фото',
   summarySeller: 'Продавец',
   owners: ownersRu,
   unitKm: 'км',
   unitL: 'л',
   published: (id) =>
-    `Объявление опубликовано и уже в приложении.\nНомер: <code>${id}</code>`,
+    `Объявление отправлено на проверку. Как только модератор его одобрит, оно появится в приложении — мы напишем.\nНомер: <code>${id}</code>`,
+  moderationApproved: (title) => `✅ <b>${title}</b> — объявление одобрено и уже в приложении.`,
+  moderationRejected: (title, reason) =>
+    `❌ <b>${title}</b> — объявление отклонено.\nПричина: ${reason}\n\nИсправьте и разместите заново.`,
 
   myEmpty: 'У вас пока нет объявлений.',
   myArchived: 'снято с показа',
+  myPending: 'на проверке',
+  myRejected: (reason) => `отклонено: ${reason}`,
   btnHide: 'Снять с показа',
   btnShow: 'Вернуть в показ',
   btnDelete: 'Удалить',
@@ -326,6 +348,11 @@ const uz: BotText = {
   askColor: 'Rang',
   askColorFree: "Rangni yozing. Masalan: To'q ko'k",
   errColor: 'Rang 3 tadan 20 tagacha belgi.',
+  askTint: 'Tonirovka bormi?',
+  tintYes: 'Bor',
+  tintNo: "Yo'q",
+  askTintFree: "Qanday tonirovka ekanini yozing. Masalan: old oynalar va orqa yarim sfera, 70%",
+  errTint: 'Tonirovkani 2 tadan 100 tagacha belgi bilan tavsiflang.',
   askNegotiable: 'Savdolashish mumkinmi?',
   bargainYes: "Savdolashsa bo'ladi",
   bargainNo: "Narx qat'iy",
@@ -345,15 +372,22 @@ const uz: BotText = {
   photoDownloadFailed: 'Rasmni yuklab bo’lmadi, uni yana yuboring.',
 
   summaryBargain: 'savdolashsa bo’ladi',
+  summaryTint: 'Tonirovka',
   summaryPhotos: 'Rasmlar',
   summarySeller: 'Sotuvchi',
   owners: (n) => `${n} ta egasi`,
   unitKm: 'km',
   unitL: 'l',
-  published: (id) => `E'lon chop etildi va ilovada ko'rinmoqda.\nRaqami: <code>${id}</code>`,
+  published: (id) =>
+    `E'lon tekshiruvga yuborildi. Moderator tasdiqlashi bilan u ilovada paydo bo'ladi — biz yozamiz.\nRaqami: <code>${id}</code>`,
+  moderationApproved: (title) => `✅ <b>${title}</b> — e'lon tasdiqlandi va ilovada ko'rinmoqda.`,
+  moderationRejected: (title, reason) =>
+    `❌ <b>${title}</b> — e'lon rad etildi.\nSababi: ${reason}\n\nTuzatib, qaytadan joylashtiring.`,
 
   myEmpty: "Sizda hali e'lonlar yo'q.",
   myArchived: "ko'rsatuvdan olingan",
+  myPending: 'tekshiruvda',
+  myRejected: (reason) => `rad etilgan: ${reason}`,
   btnHide: "Ko'rsatuvdan olish",
   btnShow: "Ko'rsatuvga qaytarish",
   btnDelete: "O'chirish",
@@ -421,6 +455,11 @@ const uzc: BotText = {
   askColor: 'Ранг',
   askColorFree: 'Рангни ёзинг. Масалан: Тўқ кўк',
   errColor: 'Ранг 3 тадан 20 тагача белги.',
+  askTint: 'Тонировка борми?',
+  tintYes: 'Бор',
+  tintNo: 'Йўқ',
+  askTintFree: 'Қандай тонировка эканини ёзинг. Масалан: олд ойналар ва орқа ярим сфера, 70%',
+  errTint: 'Тонировкани 2 тадан 100 тагача белги билан тавсифланг.',
   askNegotiable: 'Савдолашиш мумкинми?',
   bargainYes: 'Савдолашса бўлади',
   bargainNo: 'Нарх қатъий',
@@ -440,15 +479,22 @@ const uzc: BotText = {
   photoDownloadFailed: 'Расмни юклаб бўлмади, уни яна юборинг.',
 
   summaryBargain: 'савдолашса бўлади',
+  summaryTint: 'Тонировка',
   summaryPhotos: 'Расмлар',
   summarySeller: 'Сотувчи',
   owners: (n) => `${n} та эгаси`,
   unitKm: 'км',
   unitL: 'л',
-  published: (id) => `Эълон чоп этилди ва иловада кўриняпти.\nРақами: <code>${id}</code>`,
+  published: (id) =>
+    `Эълон текширувга юборилди. Модератор тасдиқлаши билан у иловада пайдо бўлади — биз ёзамиз.\nРақами: <code>${id}</code>`,
+  moderationApproved: (title) => `✅ <b>${title}</b> — эълон тасдиқланди ва иловада кўриняпти.`,
+  moderationRejected: (title, reason) =>
+    `❌ <b>${title}</b> — эълон рад этилди.\nСабаби: ${reason}\n\nТузатиб, қайтадан жойлаштиринг.`,
 
   myEmpty: 'Сизда ҳали эълонлар йўқ.',
   myArchived: 'кўрсатувдан олинган',
+  myPending: 'текширувда',
+  myRejected: (reason) => `рад этилган: ${reason}`,
   btnHide: 'Кўрсатувдан олиш',
   btnShow: 'Кўрсатувга қайтариш',
   btnDelete: 'Ўчириш',

@@ -31,9 +31,9 @@ export function BrandBadge({ brand }: { brand: string }) {
 // Бейдж лежит поверх фотографии, поэтому от темы не зависит.
 const styles = StyleSheet.create({
   badge: {
-    height: 30,
-    minWidth: 30,
-    paddingHorizontal: 9,
+    height: 38,
+    minWidth: 38,
+    paddingHorizontal: 11,
     borderRadius: radius.pill,
     backgroundColor: fixed.glass,
     borderWidth: 1,
@@ -41,6 +41,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  logo: { width: 20, height: 20 },
-  text: { color: fixed.onPhoto, fontSize: 12, fontWeight: '800', letterSpacing: 0.2 },
+  logo: { width: 26, height: 26 },
+  text: { color: fixed.onPhoto, fontSize: 14, fontWeight: '800', letterSpacing: 0.2 },
 });

@@ -62,6 +62,9 @@ async function main() {
         color: car.color,
         condition: car.condition,
         owners: car.owners,
+        // Демо-каталог модерацию не проходит: он и есть эталон готовой выдачи,
+        // а по умолчанию новое объявление теперь ждёт проверки.
+        status: 'published',
         tags: car.tags,
         negotiable: car.negotiable,
         description: car.description,
