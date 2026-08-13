@@ -1,0 +1,9 @@
+{
+  "extends": "expo/tsconfig.base",
+  "compilerOptions": {
+    "strict": true
+  },
+  // У сервера свой tsconfig и свои правила импортов (.ts в путях), поэтому
+  // из проверки приложения его исключаем — иначе tsc ругается на его файлы.
+  "exclude": ["node_modules", "server"]
+}

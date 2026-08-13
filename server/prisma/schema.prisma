@@ -1,0 +1,166 @@
+// Схема повторяет доменную модель приложения (../../src/types.ts).
+// Перечисления заданы кодами, а не подписями: клиент переводит их на три языка
+// сам, и любая новая строка отсюда отрендерится у него как undefined.
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum SellerType {
+  private
+  dealer
+}
+
+enum City {
+  tashkent
+  samarkand
+  bukhara
+  namangan
+  andijan
+  fergana
+  karshi
+  jizzakh
+  termez
+}
+
+enum BodyType {
+  sedan
+  hatchback
+  crossover
+  suv
+  minivan
+}
+
+enum Fuel {
+  petrol
+  gas
+  diesel
+  hybrid
+  electric
+}
+
+enum Transmission {
+  auto
+  manual
+  robot
+  cvt
+}
+
+enum Drive {
+  fwd
+  rwd
+  awd
+}
+
+enum Condition {
+  excellent
+  good
+  average
+  needsRepair
+}
+
+enum ListingStatus {
+  published
+  archived
+}
+
+model Seller {
+  id String @id @default(cuid())
+
+  /// Telegram-аккаунт владельца. Есть только у продавцов, пришедших через бота,
+  /// у засеянных из заглушки его нет.
+  telegramId BigInt? @unique
+
+  name String
+  type SellerType
+
+  /// E.164 без пробелов: +998901234567. Клиент форматирует по этой маске.
+  phone String
+
+  /// Username без «@» — подставляется в https://t.me/...
+  telegramUsername String?
+
+  rating Float @default(5)
+  deals  Int   @default(0)
+
+  createdAt DateTime @default(now())
+
+  listings Listing[]
+
+  @@index([phone])
+}
+
+model Listing {
+  id String @id @default(cuid())
+
+  sellerId String
+  seller   Seller @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+
+  brand String
+  model String
+  year  Int
+
+  /// Цена в долларах США, целое число
+  price Int
+
+  /// Пробег в километрах
+  mileage Int
+
+  city         City
+  bodyType     BodyType
+  fuel         Fuel
+  transmission Transmission
+  drive        Drive
+
+  /// Объём двигателя в литрах
+  engine Float
+
+  /// Мощность, л.с. Бот её не спрашивает — у объявлений из бота поля нет.
+  power Int?
+
+  color String
+
+  /// Состояние — то, что показано на карточке в колоде вместо коробки передач.
+  /// Дефолт нужен только для строк, заведённых до появления поля.
+  condition Condition @default(good)
+
+  /// Число владельцев по техпаспорту. Без дефолта: у строк, заведённых до
+  /// появления поля, его действительно никто не спрашивал.
+  owners Int?
+
+  tags        String[]
+  negotiable  Boolean  @default(true)
+  description String
+
+  /// Выгодное предложение — под будущий экран «Мэтч»
+  hot Boolean @default(false)
+
+  /// Удаление мягкое: объявление уходит из выдачи, но переживает случайное нажатие
+  status ListingStatus @default(published)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  photos Photo[]
+
+  @@index([status, createdAt])
+  @@index([sellerId])
+}
+
+model Photo {
+  id String @id @default(cuid())
+
+  listingId String
+  listing   Listing @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  url       String
+  sortOrder Int    @default(0)
+
+  @@index([listingId, sortOrder])
+}
