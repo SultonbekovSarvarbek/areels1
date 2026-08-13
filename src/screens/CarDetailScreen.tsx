@@ -276,54 +276,49 @@ export function CarDetailScreen({
                 <Text style={styles.sectionTitle}>{t.description}</Text>
                 <Text style={styles.description}>{car.description}</Text>
 
-                <Text style={styles.sectionTitle}>{t.seller}</Text>
-                <View style={styles.seller}>
-                  <View style={styles.avatar}>
-                    <Text style={styles.avatarText}>{car.seller.name.slice(0, 1)}</Text>
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.sellerName}>{car.seller.name}</Text>
-                    <Text style={styles.sellerMeta}>{t.sellerType[car.seller.type]}</Text>
-                  </View>
-                </View>
-
-                {/* Связаться можно только кнопками в футере: строками здесь
-                    и телефон, и телеграм дублировали их один в один. */}
+                {/* Продавца целиком показывает футер: отдельная карточка с
+                    аватаркой повторяла то, что и так стоит над кнопкой звонка. */}
               </View>
             </ScrollView>
 
             <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 14) }]}>
-              <Pressable
-                style={styles.callBtn}
-                onPress={() => openLink(`tel:${car.seller.phone}`, t)}
-              >
-                <Ionicons name="call" size={18} color={c.onBright} />
-                <Text style={styles.callText} numberOfLines={1}>
-                  {formatPhone(car.seller.phone)}
-                </Text>
-              </Pressable>
+              <Text style={styles.sellerLine} numberOfLines={1}>
+                {t.seller} — {car.seller.name}
+              </Text>
 
-              {car.seller.telegram && (
+              <View style={styles.footerRow}>
                 <Pressable
-                  style={styles.tgBtn}
-                  onPress={() => openLink(`https://t.me/${car.seller.telegram}`, t)}
-                  accessibilityLabel="Написать в Telegram"
+                  style={styles.callBtn}
+                  onPress={() => openLink(`tel:${car.seller.phone}`, t)}
                 >
-                  <Ionicons name="paper-plane" size={20} color={c.tg} />
+                  <Ionicons name="call" size={18} color={c.onBright} />
+                  <Text style={styles.callText} numberOfLines={1}>
+                    {formatPhone(car.seller.phone)}
+                  </Text>
                 </Pressable>
-              )}
 
-              <Pressable
-                style={styles.iconBtn}
-                onPress={() => onToggleLike(car)}
-                accessibilityLabel={isLiked ? t.favRemove : t.favAdd}
-              >
-                <Ionicons
-                  name={isLiked ? 'heart' : 'heart-outline'}
-                  size={20}
-                  color={isLiked ? c.like : c.text}
-                />
-              </Pressable>
+                {car.seller.telegram && (
+                  <Pressable
+                    style={styles.tgBtn}
+                    onPress={() => openLink(`https://t.me/${car.seller.telegram}`, t)}
+                    accessibilityLabel="Написать в Telegram"
+                  >
+                    <Ionicons name="paper-plane" size={20} color={c.tg} />
+                  </Pressable>
+                )}
+
+                <Pressable
+                  style={styles.iconBtn}
+                  onPress={() => onToggleLike(car)}
+                  accessibilityLabel={isLiked ? t.favRemove : t.favAdd}
+                >
+                  <Ionicons
+                    name={isLiked ? 'heart' : 'heart-outline'}
+                    size={20}
+                    color={isLiked ? c.like : c.text}
+                  />
+                </Pressable>
+              </View>
             </View>
 
             <PhotoViewer
@@ -412,36 +407,15 @@ const makeStyles = (c: Palette) =>
     specValue: { color: c.text, fontSize: 15, fontWeight: '600' },
     specValueEco: { color: c.like, fontWeight: '700' },
     description: { color: c.textDim, fontSize: 15, lineHeight: 22 },
-    seller: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 12,
-      backgroundColor: c.card,
-      borderRadius: radius.md,
-      borderWidth: 1,
-      borderColor: c.border,
-      padding: 14,
-    },
-    avatar: {
-      width: 44,
-      height: 44,
-      borderRadius: 22,
-      backgroundColor: c.bgElevated,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    avatarText: { color: c.text, fontSize: 18, fontWeight: '800' },
-    sellerName: { color: c.text, fontSize: 15, fontWeight: '700' },
-    sellerMeta: { color: c.textDim, fontSize: 12, marginTop: 2 },
     footer: {
-      flexDirection: 'row',
-      gap: 10,
       paddingHorizontal: 20,
       paddingTop: 12,
       borderTopWidth: 1,
       borderTopColor: c.border,
       backgroundColor: c.bgElevated,
     },
+    sellerLine: { color: c.textDim, fontSize: 13, fontWeight: '600', marginBottom: 10 },
+    footerRow: { flexDirection: 'row', gap: 10 },
     callBtn: {
       flex: 1,
       flexDirection: 'row',
