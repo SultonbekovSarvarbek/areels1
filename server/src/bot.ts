@@ -79,10 +79,10 @@ const MAX_PHOTOS = 10;
 
 /**
  * Живой человек на случай, когда бот не помог: отклонённое объявление, чужой
- * номер в чужом объявлении, просьба удалить данные. Телефон — как его набирают,
- * с пробелами: копировать из телеграма его будут глазами.
+ * номер в чужом объявлении, просьба удалить данные. Только телеграм — звонки
+ * поддержка не принимает.
  */
-const SUPPORT = { phone: '+998 94 044 45 81', telegram: '@s_sarvar' };
+const SUPPORT = { telegram: '@avtolike_manager' };
 
 /** Ключи текстов-строк: по ним узнаём нажатую кнопку. */
 type ButtonKey = {
@@ -676,10 +676,10 @@ const menuKeyboard = (lang: Lang) =>
     .text(TEXT[lang].menuSupport)
     .resized();
 
-/** Контакты поддержки: текстом — чтобы позвонить, кнопкой — чтобы написать. */
+/** Контакт поддержки: хэндлом в тексте и кнопкой, ведущей прямо в чат. */
 async function showSupport(ctx: BotContext): Promise<void> {
   const { lang } = ctx.session;
-  await ctx.reply(TEXT[lang].supportText(SUPPORT.phone, SUPPORT.telegram), {
+  await ctx.reply(TEXT[lang].supportText(SUPPORT.telegram), {
     reply_markup: new InlineKeyboard().url(
       TEXT[lang].supportWrite,
       `https://t.me/${SUPPORT.telegram.slice(1)}`,

@@ -123,8 +123,8 @@ interface BotText {
   menuMy: string;
   menuLang: string;
   menuSupport: string;
-  /** Контакты живого человека: телефон и телеграм подставляются из бота. */
-  supportText: (phone: string, telegram: string) => string;
+  /** Контакт живого человека — телеграм подставляется из бота. */
+  supportText: (telegram: string) => string;
   supportWrite: string;
   cancel: string;
   done: string;
@@ -244,9 +244,9 @@ const ru: BotText = {
   menuMy: 'Мои объявления',
   menuLang: '🌐 Язык',
   menuSupport: '💬 Поддержка',
-  supportText: (phone, telegram) =>
+  supportText: (telegram) =>
     'Поддержка AvtoLike.\n\n' +
-    `Телефон: ${phone}\nTelegram: ${telegram}\n\n` +
+    `Telegram: ${telegram}\n\n` +
     'Напишите, если что-то не работает, объявление отклонили не по делу или нужно удалить свои данные.',
   supportWrite: 'Написать в Telegram',
   cancel: 'Отмена',
@@ -357,9 +357,9 @@ const uz: BotText = {
   menuMy: "Mening e'lonlarim",
   menuLang: '🌐 Til',
   menuSupport: "💬 Qo'llab-quvvatlash",
-  supportText: (phone, telegram) =>
+  supportText: (telegram) =>
     "AvtoLike qo'llab-quvvatlash xizmati.\n\n" +
-    `Telefon: ${phone}\nTelegram: ${telegram}\n\n` +
+    `Telegram: ${telegram}\n\n` +
     "Biror narsa ishlamasa, e'lon noo'rin rad etilsa yoki ma'lumotlaringizni o'chirish kerak bo'lsa — yozing.",
   supportWrite: 'Telegramga yozish',
   cancel: 'Bekor qilish',
@@ -471,9 +471,9 @@ const uzc: BotText = {
   menuMy: 'Менинг эълонларим',
   menuLang: '🌐 Тил',
   menuSupport: '💬 Қўллаб-қувватлаш',
-  supportText: (phone, telegram) =>
+  supportText: (telegram) =>
     'AvtoLike қўллаб-қувватлаш хизмати.\n\n' +
-    `Телефон: ${phone}\nTelegram: ${telegram}\n\n` +
+    `Telegram: ${telegram}\n\n` +
     'Бирор нарса ишламаса, эълон ноўрин рад этилса ёки маълумотларингизни ўчириш керак бўлса — ёзинг.',
   supportWrite: 'Телеграмга ёзиш',
   cancel: 'Бекор қилиш',
