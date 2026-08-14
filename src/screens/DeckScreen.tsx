@@ -153,7 +153,9 @@ export function DeckScreen({
           accessibilityLabel={`${t.sellCtaTitle} ${t.sellCtaText}`}
         >
           <View style={styles.sellIcon}>
-            <Ionicons name="paper-plane" size={18} color={c.tg} />
+            {/* Машина, а не самолётик: значок говорит про продажу авто,
+                а Telegram и так назван текстом и хэндлом рядом. */}
+            <Ionicons name="car-sport" size={20} color={c.tg} />
           </View>
           <View style={{ flex: 1 }}>
             <Text style={styles.sellTitle}>{t.sellCtaTitle}</Text>
