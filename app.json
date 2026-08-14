@@ -26,7 +26,17 @@
       "expo-font",
       "expo-image",
       "expo-status-bar",
-      "expo-localization"
+      "expo-localization",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 220,
+          "resizeMode": "contain",
+          "backgroundColor": "#FFFFFF",
+          "dark": { "image": "./assets/splash-icon.png", "backgroundColor": "#FFFFFF" }
+        }
+      ]
     ]
   }
 }
