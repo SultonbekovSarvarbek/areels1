@@ -2,9 +2,23 @@
  * Таксономия хранится кодами, а не подписями: значения показываются на трёх
  * языках, и русский текст в данных сделал бы перевод невозможным.
  */
-export type BodyType = 'sedan' | 'hatchback' | 'crossover' | 'suv' | 'minivan';
+export type BodyType =
+  | 'sedan'
+  | 'hatchback'
+  | 'crossover'
+  | 'suv'
+  | 'minivan'
+  | 'coupe'
+  | 'wagon'
+  | 'cabrio'
+  | 'pickup'
+  | 'other';
 export type Fuel = 'petrol' | 'gas' | 'diesel' | 'hybrid' | 'electric';
-export type Transmission = 'auto' | 'manual' | 'robot' | 'cvt';
+/**
+ * Коробка — только механика и автомат: продавец в анкете путает робот с
+ * вариатором чаще, чем покупатель их различает. Всё остальное — «Другая».
+ */
+export type Transmission = 'manual' | 'auto' | 'other';
 export type Drive = 'fwd' | 'rwd' | 'awd';
 export type SellerType = 'private' | 'dealer';
 /** Состояние машины — то, что вынесено на карточку вместо коробки передач. */

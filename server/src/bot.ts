@@ -406,9 +406,11 @@ const STEPS: Record<string, Step> = {
     /**
      * Кнопки — только частые ответы, а редкое «7» продавец допишет текстом:
      * parseNumber одинаково разбирает и нажатие кнопки, и ручной ввод.
+     * «4+» уходит в базу четвёркой — точное число после четвёртого владельца
+     * покупателя уже не интересует.
      */
     prompt: (lang) => TEXT[lang].askOwners,
-    keyboard: (lang) => keyboard(['1', '2', '3', '4', '5'], 5, lang),
+    keyboard: (lang) => keyboard(['1', '2', '3', '4+'], 4, lang),
     apply: (text, s) => {
       const owners = parseNumber(text, 1, 20);
       if (!owners) return TEXT[s.lang].errOwners;

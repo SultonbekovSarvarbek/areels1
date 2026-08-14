@@ -271,6 +271,11 @@ const ru: Dict = {
     crossover: 'Кроссовер',
     suv: 'Внедорожник',
     minivan: 'Минивэн',
+    coupe: 'Купе',
+    wagon: 'Универсал',
+    cabrio: 'Кабриолет',
+    pickup: 'Пикап',
+    other: 'Другой',
   },
   fuel: {
     petrol: 'Бензин',
@@ -279,7 +284,7 @@ const ru: Dict = {
     hybrid: 'Гибрид',
     electric: 'Электро',
   },
-  transmission: { auto: 'АКПП', manual: 'МКПП', robot: 'Робот', cvt: 'Вариатор' },
+  transmission: { manual: 'Механическая', auto: 'Автоматическая', other: 'Другая' },
   drive: { fwd: 'Передний', rwd: 'Задний', awd: 'Полный' },
   condition: {
     excellent: 'Отличное',
@@ -425,6 +430,11 @@ const uz: Dict = {
     crossover: 'Krossover',
     suv: "Yo'ltanlamas",
     minivan: 'Miniven',
+    coupe: 'Kupe',
+    wagon: 'Universal',
+    cabrio: 'Kabriolet',
+    pickup: 'Pikap',
+    other: 'Boshqa',
   },
   fuel: {
     petrol: 'Benzin',
@@ -433,7 +443,7 @@ const uz: Dict = {
     hybrid: 'Gibrid',
     electric: 'Elektr',
   },
-  transmission: { auto: 'Avtomat', manual: 'Mexanika', robot: 'Robot', cvt: 'Variator' },
+  transmission: { manual: 'Mexanika', auto: 'Avtomat', other: 'Boshqa' },
   drive: { fwd: 'Old', rwd: 'Orqa', awd: "To'liq" },
   condition: {
     excellent: "A'lo",
@@ -577,6 +587,11 @@ const uzc: Dict = {
     crossover: 'Кроссовер',
     suv: 'Йўлтанламас',
     minivan: 'Минивэн',
+    coupe: 'Купе',
+    wagon: 'Универсал',
+    cabrio: 'Кабриолет',
+    pickup: 'Пикап',
+    other: 'Бошқа',
   },
   fuel: {
     petrol: 'Бензин',
@@ -585,7 +600,7 @@ const uzc: Dict = {
     hybrid: 'Гибрид',
     electric: 'Электр',
   },
-  transmission: { auto: 'Автомат', manual: 'Механика', robot: 'Робот', cvt: 'Вариатор' },
+  transmission: { manual: 'Механика', auto: 'Автомат', other: 'Бошқа' },
   drive: { fwd: 'Олд', rwd: 'Орқа', awd: 'Тўлиқ' },
   condition: {
     excellent: 'Аъло',

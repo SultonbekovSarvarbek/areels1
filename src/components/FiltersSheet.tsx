@@ -9,8 +9,19 @@ import { useColors } from '../ThemeContext';
 import { useT } from '../I18nContext';
 import { PriceSlider } from './PriceSlider';
 
-const BODY_TYPES: BodyType[] = ['sedan', 'hatchback', 'crossover', 'suv', 'minivan'];
-const TRANSMISSIONS: Transmission[] = ['auto', 'manual', 'robot', 'cvt'];
+const BODY_TYPES: BodyType[] = [
+  'sedan',
+  'hatchback',
+  'crossover',
+  'suv',
+  'minivan',
+  'coupe',
+  'wagon',
+  'cabrio',
+  'pickup',
+  'other',
+];
+const TRANSMISSIONS: Transmission[] = ['manual', 'auto', 'other'];
 /** Шаг ползунка цены: округлять до сотен долларов на такой полосе бессмысленно. */
 const PRICE_STEP = 500;
 const YEAR_STEPS = [2015, 2018, 2021, 2023];

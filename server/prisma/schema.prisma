@@ -35,6 +35,11 @@ enum BodyType {
   crossover
   suv
   minivan
+  coupe
+  wagon
+  cabrio
+  pickup
+  other
 }
 
 enum Fuel {
@@ -45,11 +50,12 @@ enum Fuel {
   electric
 }
 
+/// Робот и вариатор свёрнуты в other: продавцы их путали, покупателям хватает
+/// деления на механику и автомат.
 enum Transmission {
-  auto
   manual
-  robot
-  cvt
+  auto
+  other
 }
 
 enum Drive {
