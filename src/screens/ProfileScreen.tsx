@@ -1,13 +1,16 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Alert, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Car, Offer, User } from '../types';
+import { OFFERS_ENABLED } from '../features';
 import { Palette, radius } from '../theme';
 import { useColors } from '../ThemeContext';
 import { useI18n } from '../I18nContext';
 import { Dict, LANGS } from '../i18n';
+import { LegalKey, legal } from '../legal';
+import { LegalScreen } from './LegalScreen';
 import { formatPhone, formatPrice } from '../utils/format';
 
 interface Props {
@@ -72,12 +75,72 @@ export function ProfileScreen({
   const c = useColors();
   const { t, lang, setLang } = useI18n();
   const styles = useMemo(() => makeStyles(c), [c]);
+  /** Открытый документ: условия или политика. null — шторка закрыта. */
+  const [doc, setDoc] = useState<LegalKey | null>(null);
 
   const confirmSignOut = () =>
     Alert.alert(t.signOutTitle, t.signOutText, [
       { text: t.cancel, style: 'cancel' },
       { text: t.signOut, style: 'destructive', onPress: onSignOut },
     ]);
+
+  const langPicker = (
+    <>
+      <Text style={styles.section}>{t.language}</Text>
+      <View style={styles.langRow}>
+        {LANGS.map((l) => (
+          <Pressable
+            key={l.id}
+            style={[styles.lang, lang === l.id && styles.langActive]}
+            onPress={() => setLang(l.id)}
+          >
+            <Text style={[styles.langText, lang === l.id && styles.langTextActive]}>{l.label}</Text>
+          </Pressable>
+        ))}
+      </View>
+    </>
+  );
+
+  const documents = (
+    <>
+      <Text style={styles.section}>{t.documents}</Text>
+      <View style={styles.docs}>
+        {(['terms', 'privacy'] as LegalKey[]).map((key) => (
+          <Pressable key={key} style={styles.docRow} onPress={() => setDoc(key)}>
+            <Ionicons name="document-text-outline" size={18} color={c.textDim} />
+            <Text style={styles.docText}>{legal[lang][key].title}</Text>
+            <Ionicons name="chevron-forward" size={16} color={c.textFaint} />
+          </Pressable>
+        ))}
+      </View>
+    </>
+  );
+
+  const legalSheet = <LegalScreen doc={doc} onClose={() => setDoc(null)} />;
+
+  /**
+   * Пока предложения цены выключены (features.ts), профилю нечего показывать
+   * кроме избранного, документов и языка: вход по номеру существовал только
+   * ради оффера.
+   */
+  if (!OFFERS_ENABLED) {
+    return (
+      <View style={styles.root}>
+        <Text style={styles.title}>{t.profile}</Text>
+        <View style={[styles.stats, styles.statsSolo]}>
+          <View style={styles.stat}>
+            <Text style={styles.statValue}>{likedCount}</Text>
+            <Text style={styles.statLabel}>{t.statFavourites}</Text>
+          </View>
+        </View>
+        <View style={[styles.langBlock, styles.langBlockGuest]}>
+          {documents}
+          {langPicker}
+        </View>
+        {legalSheet}
+      </View>
+    );
+  }
 
   if (!user) {
     return (
@@ -94,21 +157,10 @@ export function ProfileScreen({
           </Pressable>
         </View>
         <View style={[styles.langBlock, styles.langBlockGuest]}>
-          <Text style={styles.section}>{t.language}</Text>
-          <View style={styles.langRow}>
-            {LANGS.map((l) => (
-              <Pressable
-                key={l.id}
-                style={[styles.lang, lang === l.id && styles.langActive]}
-                onPress={() => setLang(l.id)}
-              >
-                <Text style={[styles.langText, lang === l.id && styles.langTextActive]}>
-                  {l.label}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
+          {documents}
+          {langPicker}
         </View>
+        {legalSheet}
       </View>
     );
   }
@@ -168,20 +220,8 @@ export function ProfileScreen({
         ListFooterComponent={
           <>
             <View style={styles.langBlock}>
-              <Text style={styles.section}>{t.language}</Text>
-              <View style={styles.langRow}>
-                {LANGS.map((l) => (
-                  <Pressable
-                    key={l.id}
-                    style={[styles.lang, lang === l.id && styles.langActive]}
-                    onPress={() => setLang(l.id)}
-                  >
-                    <Text style={[styles.langText, lang === l.id && styles.langTextActive]}>
-                      {l.label}
-                    </Text>
-                  </Pressable>
-                ))}
-              </View>
+              {documents}
+              {langPicker}
             </View>
             <Pressable style={styles.signOut} onPress={confirmSignOut}>
               <Ionicons name="log-out-outline" size={18} color={c.textDim} />
@@ -190,6 +230,7 @@ export function ProfileScreen({
           </>
         }
       />
+      {legalSheet}
     </View>
   );
 }
@@ -248,6 +289,8 @@ const makeStyles = (c: Palette) =>
       borderColor: c.border,
       paddingVertical: 14,
     },
+    // Вне FlatList у статистики нет отступов списка — задаём их сами.
+    statsSolo: { marginHorizontal: 20 },
     stat: { flex: 1, alignItems: 'center', gap: 2 },
     statDivider: { width: 1, height: 28, backgroundColor: c.border },
     statValue: { color: c.text, fontSize: 20, fontWeight: '900' },
@@ -291,6 +334,19 @@ const makeStyles = (c: Palette) =>
       borderColor: c.border,
     },
     signOutText: { color: c.textDim, fontSize: 15, fontWeight: '700' },
+    docs: { gap: 8, marginTop: 4 },
+    docRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+      backgroundColor: c.bgElevated,
+      borderRadius: radius.md,
+      borderWidth: 1,
+      borderColor: c.border,
+      paddingHorizontal: 14,
+      paddingVertical: 13,
+    },
+    docText: { flex: 1, color: c.text, fontSize: 15, fontWeight: '600' },
     langBlock: { paddingHorizontal: 4 },
     // У гостя блок лежит вне FlatList, поэтому отступы списка ему нужно задать самому.
     langBlockGuest: { paddingHorizontal: 20, paddingBottom: 24 },

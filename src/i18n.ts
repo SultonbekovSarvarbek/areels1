@@ -95,6 +95,8 @@ interface Dict {
   signOutText: string;
   cancel: string;
   language: string;
+  /** Заголовок раздела со ссылками на условия и политику (../legal.ts). */
+  documents: string;
 
   // Вход
   authTitle: string;
@@ -231,6 +233,7 @@ const ru: Dict = {
   signOutText: 'Отправленные предложения будут удалены с устройства.',
   cancel: 'Отмена',
   language: 'Язык',
+  documents: 'Документы',
 
   authTitle: 'Вход в AvtoLike',
   authSubtitle: 'Чтобы предложить цену, продавец должен знать, с кем говорит',
@@ -389,6 +392,7 @@ const uz: Dict = {
   signOutText: "Yuborilgan takliflar qurilmadan o'chiriladi.",
   cancel: 'Bekor qilish',
   language: 'Til',
+  documents: 'Hujjatlar',
 
   authTitle: "AvtoLike'ga kirish",
   authSubtitle: 'Narx taklif qilish uchun sotuvchi kim bilan gaplashayotganini bilishi kerak',
@@ -547,6 +551,7 @@ const uzc: Dict = {
   signOutText: 'Юборилган таклифлар қурилмадан ўчирилади.',
   cancel: 'Бекор қилиш',
   language: 'Тил',
+  documents: 'Ҳужжатлар',
 
   authTitle: 'AvtoLike га кириш',
   authSubtitle: 'Нарх таклиф қилиш учун сотувчи ким билан гаплашаётганини билиши керак',
