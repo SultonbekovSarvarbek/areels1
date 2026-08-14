@@ -97,6 +97,10 @@ interface Dict {
   language: string;
   /** Заголовок раздела со ссылками на условия и политику (../legal.ts). */
   documents: string;
+  support: string;
+  supportWrite: string;
+  /** Ручное обновление каталога: кнопка в шапке колоды и жест в избранном. */
+  refresh: string;
 
   // Вход
   authTitle: string;
@@ -234,6 +238,9 @@ const ru: Dict = {
   cancel: 'Отмена',
   language: 'Язык',
   documents: 'Документы',
+  support: 'Поддержка',
+  supportWrite: 'Написать в Telegram',
+  refresh: 'Обновить',
 
   authTitle: 'Вход в AvtoLike',
   authSubtitle: 'Чтобы предложить цену, продавец должен знать, с кем говорит',
@@ -393,6 +400,9 @@ const uz: Dict = {
   cancel: 'Bekor qilish',
   language: 'Til',
   documents: 'Hujjatlar',
+  support: "Qo'llab-quvvatlash",
+  supportWrite: 'Telegramga yozish',
+  refresh: 'Yangilash',
 
   authTitle: "AvtoLike'ga kirish",
   authSubtitle: 'Narx taklif qilish uchun sotuvchi kim bilan gaplashayotganini bilishi kerak',
@@ -552,6 +562,9 @@ const uzc: Dict = {
   cancel: 'Бекор қилиш',
   language: 'Тил',
   documents: 'Ҳужжатлар',
+  support: 'Қўллаб-қувватлаш',
+  supportWrite: 'Телеграмга ёзиш',
+  refresh: 'Янгилаш',
 
   authTitle: 'AvtoLike га кириш',
   authSubtitle: 'Нарх таклиф қилиш учун сотувчи ким билан гаплашаётганини билиши керак',

@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Alert, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, FlatList, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -12,6 +12,9 @@ import { Dict, LANGS } from '../i18n';
 import { LegalKey, legal } from '../legal';
 import { LegalScreen } from './LegalScreen';
 import { formatPhone, formatPrice } from '../utils/format';
+
+/** Тот же аккаунт, что отвечает в боте (server/src/bot.ts). */
+const SUPPORT = 'avtolike_manager';
 
 interface Props {
   user: User | null;
@@ -78,6 +81,12 @@ export function ProfileScreen({
   /** Открытый документ: условия или политика. null — шторка закрыта. */
   const [doc, setDoc] = useState<LegalKey | null>(null);
 
+  const openSupport = () => {
+    Linking.openURL(`https://t.me/${SUPPORT}`).catch(() => {
+      Alert.alert(t.openFailTitle, t.openFailText);
+    });
+  };
+
   const confirmSignOut = () =>
     Alert.alert(t.signOutTitle, t.signOutText, [
       { text: t.cancel, style: 'cancel' },
@@ -116,6 +125,17 @@ export function ProfileScreen({
     </>
   );
 
+  const support = (
+    <>
+      <Text style={styles.section}>{t.support}</Text>
+      <Pressable style={styles.docRow} onPress={openSupport} accessibilityRole="link">
+        <Ionicons name="chatbubble-ellipses-outline" size={18} color={c.tg} />
+        <Text style={styles.docText}>{t.supportWrite}</Text>
+        <Text style={styles.docHandle}>@{SUPPORT}</Text>
+      </Pressable>
+    </>
+  );
+
   const legalSheet = <LegalScreen doc={doc} onClose={() => setDoc(null)} />;
 
   /**
@@ -135,6 +155,7 @@ export function ProfileScreen({
         </View>
         <View style={[styles.langBlock, styles.langBlockGuest]}>
           {documents}
+          {support}
           {langPicker}
         </View>
         {legalSheet}
@@ -158,6 +179,7 @@ export function ProfileScreen({
         </View>
         <View style={[styles.langBlock, styles.langBlockGuest]}>
           {documents}
+          {support}
           {langPicker}
         </View>
         {legalSheet}
@@ -221,6 +243,7 @@ export function ProfileScreen({
           <>
             <View style={styles.langBlock}>
               {documents}
+              {support}
               {langPicker}
             </View>
             <Pressable style={styles.signOut} onPress={confirmSignOut}>
@@ -347,6 +370,7 @@ const makeStyles = (c: Palette) =>
       paddingVertical: 13,
     },
     docText: { flex: 1, color: c.text, fontSize: 15, fontWeight: '600' },
+    docHandle: { color: c.tg, fontSize: 14, fontWeight: '700' },
     langBlock: { paddingHorizontal: 4 },
     // У гостя блок лежит вне FlatList, поэтому отступы списка ему нужно задать самому.
     langBlockGuest: { paddingHorizontal: 20, paddingBottom: 24 },
