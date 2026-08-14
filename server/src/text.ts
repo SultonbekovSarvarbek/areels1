@@ -122,6 +122,10 @@ interface BotText {
   menuNew: string;
   menuMy: string;
   menuLang: string;
+  menuSupport: string;
+  /** Контакты живого человека: телефон и телеграм подставляются из бота. */
+  supportText: (phone: string, telegram: string) => string;
+  supportWrite: string;
   cancel: string;
   done: string;
   skip: string;
@@ -221,6 +225,7 @@ interface BotText {
   cmdMy: string;
   cmdCancel: string;
   cmdLang: string;
+  cmdSupport: string;
 }
 
 /** Русские склонения: 1 владелец, 2 владельца, 5 владельцев. */
@@ -238,6 +243,12 @@ const ru: BotText = {
   menuNew: 'Разместить объявление',
   menuMy: 'Мои объявления',
   menuLang: '🌐 Язык',
+  menuSupport: '💬 Поддержка',
+  supportText: (phone, telegram) =>
+    'Поддержка AvtoLike.\n\n' +
+    `Телефон: ${phone}\nTelegram: ${telegram}\n\n` +
+    'Напишите, если что-то не работает, объявление отклонили не по делу или нужно удалить свои данные.',
+  supportWrite: 'Написать в Telegram',
   cancel: 'Отмена',
   done: 'Готово',
   skip: 'Пропустить',
@@ -336,6 +347,7 @@ const ru: BotText = {
   cmdMy: 'Мои объявления',
   cmdCancel: 'Отменить анкету',
   cmdLang: 'Сменить язык',
+  cmdSupport: 'Поддержка',
 };
 
 const uz: BotText = {
@@ -344,6 +356,12 @@ const uz: BotText = {
   menuNew: "E'lon joylashtirish",
   menuMy: "Mening e'lonlarim",
   menuLang: '🌐 Til',
+  menuSupport: "💬 Qo'llab-quvvatlash",
+  supportText: (phone, telegram) =>
+    "AvtoLike qo'llab-quvvatlash xizmati.\n\n" +
+    `Telefon: ${phone}\nTelegram: ${telegram}\n\n` +
+    "Biror narsa ishlamasa, e'lon noo'rin rad etilsa yoki ma'lumotlaringizni o'chirish kerak bo'lsa — yozing.",
+  supportWrite: 'Telegramga yozish',
   cancel: 'Bekor qilish',
   done: 'Tayyor',
   skip: "O'tkazish",
@@ -443,6 +461,7 @@ const uz: BotText = {
   cmdMy: "Mening e'lonlarim",
   cmdCancel: "So'rovnomani bekor qilish",
   cmdLang: "Tilni o'zgartirish",
+  cmdSupport: "Qo'llab-quvvatlash",
 };
 
 const uzc: BotText = {
@@ -451,6 +470,12 @@ const uzc: BotText = {
   menuNew: 'Эълон жойлаштириш',
   menuMy: 'Менинг эълонларим',
   menuLang: '🌐 Тил',
+  menuSupport: '💬 Қўллаб-қувватлаш',
+  supportText: (phone, telegram) =>
+    'AvtoLike қўллаб-қувватлаш хизмати.\n\n' +
+    `Телефон: ${phone}\nTelegram: ${telegram}\n\n` +
+    'Бирор нарса ишламаса, эълон ноўрин рад этилса ёки маълумотларингизни ўчириш керак бўлса — ёзинг.',
+  supportWrite: 'Телеграмга ёзиш',
   cancel: 'Бекор қилиш',
   done: 'Тайёр',
   skip: 'Ўтказиш',
@@ -550,6 +575,7 @@ const uzc: BotText = {
   cmdMy: 'Менинг эълонларим',
   cmdCancel: 'Сўровномани бекор қилиш',
   cmdLang: 'Тилни ўзгартириш',
+  cmdSupport: 'Қўллаб-қувватлаш',
 };
 
 export const TEXT: Record<Lang, BotText> = { ru, uz, uzc };

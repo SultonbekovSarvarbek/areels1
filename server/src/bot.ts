@@ -77,6 +77,13 @@ const BRANDS = [
 
 const MAX_PHOTOS = 10;
 
+/**
+ * Живой человек на случай, когда бот не помог: отклонённое объявление, чужой
+ * номер в чужом объявлении, просьба удалить данные. Телефон — как его набирают,
+ * с пробелами: копировать из телеграма его будут глазами.
+ */
+const SUPPORT = { phone: '+998 94 044 45 81', telegram: '@s_sarvar' };
+
 /** Ключи текстов-строк: по ним узнаём нажатую кнопку. */
 type ButtonKey = {
   [K in keyof BotText]: BotText[K] extends string ? K : never;
@@ -666,7 +673,19 @@ const menuKeyboard = (lang: Lang) =>
     .text(TEXT[lang].menuMy)
     .row()
     .text(TEXT[lang].menuLang)
+    .text(TEXT[lang].menuSupport)
     .resized();
+
+/** Контакты поддержки: текстом — чтобы позвонить, кнопкой — чтобы написать. */
+async function showSupport(ctx: BotContext): Promise<void> {
+  const { lang } = ctx.session;
+  await ctx.reply(TEXT[lang].supportText(SUPPORT.phone, SUPPORT.telegram), {
+    reply_markup: new InlineKeyboard().url(
+      TEXT[lang].supportWrite,
+      `https://t.me/${SUPPORT.telegram.slice(1)}`,
+    ),
+  });
+}
 
 // ─── Язык ────────────────────────────────────────────────────────────────────
 
@@ -843,6 +862,9 @@ bot.command('start', async (ctx) => {
 
 bot.command('lang', askLang);
 
+/** Поддержка доступна и посреди анкеты: шаг от этого не сбивается. */
+bot.command('support', showSupport);
+
 bot.command('cancel', async (ctx) => {
   reset(ctx);
   await ctx.reply(TEXT[ctx.session.lang].formCancelled, {
@@ -987,6 +1009,10 @@ bot.on('message:text', async (ctx) => {
       await askLang(ctx);
       return;
     }
+    if (isButton(text, 'menuSupport')) {
+      await showSupport(ctx);
+      return;
+    }
     await ctx.reply(t.chooseAction, { reply_markup: menuKeyboard(s.lang) });
     return;
   }
@@ -1082,6 +1108,7 @@ const commands = (lang: Lang) => [
   { command: 'new', description: TEXT[lang].cmdNew },
   { command: 'my', description: TEXT[lang].cmdMy },
   { command: 'lang', description: TEXT[lang].cmdLang },
+  { command: 'support', description: TEXT[lang].cmdSupport },
   { command: 'cancel', description: TEXT[lang].cmdCancel },
 ];
 
