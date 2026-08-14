@@ -19,6 +19,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 
 import { Car, Offer } from '../types';
+import { OFFERS_ENABLED } from '../features';
 import { Palette, fixed, radius } from '../theme';
 import { useColors } from '../ThemeContext';
 import { useT } from '../I18nContext';
@@ -212,27 +213,29 @@ export function CarDetailScreen({
                   <Text style={styles.location}>{t.city[car.city]}</Text>
                 </View>
 
-                <Pressable
-                  style={({ pressed }) => [
-                    styles.offerBtn,
-                    offer && styles.offerBtnDone,
-                    pressed && styles.contactPressed,
-                  ]}
-                  onPress={() => onOfferPress(car)}
-                >
-                  <Ionicons
-                    name={offer ? 'checkmark-circle' : 'pricetag-outline'}
-                    size={18}
-                    color={offer ? c.like : c.text}
-                  />
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.offerText}>
-                      {offer ? t.offerMadeFor(formatPrice(offer.price)) : t.offerMake}
-                    </Text>
-                    {offer && <Text style={styles.offerHint}>{t.offerTapToChange}</Text>}
-                  </View>
-                  <Ionicons name="chevron-forward" size={16} color={c.textFaint} />
-                </Pressable>
+                {OFFERS_ENABLED && (
+                  <Pressable
+                    style={({ pressed }) => [
+                      styles.offerBtn,
+                      offer && styles.offerBtnDone,
+                      pressed && styles.contactPressed,
+                    ]}
+                    onPress={() => onOfferPress(car)}
+                  >
+                    <Ionicons
+                      name={offer ? 'checkmark-circle' : 'pricetag-outline'}
+                      size={18}
+                      color={offer ? c.like : c.text}
+                    />
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.offerText}>
+                        {offer ? t.offerMadeFor(formatPrice(offer.price)) : t.offerMake}
+                      </Text>
+                      {offer && <Text style={styles.offerHint}>{t.offerTapToChange}</Text>}
+                    </View>
+                    <Ionicons name="chevron-forward" size={16} color={c.textFaint} />
+                  </Pressable>
+                )}
 
                 <View style={styles.tags}>
                   {car.tags.map((tag) => (

@@ -6,6 +6,7 @@ import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 
 import { Car, Filters, SwipeDirection, emptyFilters } from './src/types';
+import { OFFERS_ENABLED } from './src/features';
 import { ThemeProvider, useTheme } from './src/ThemeContext';
 import { SessionProvider, useSession } from './src/SessionContext';
 import { I18nProvider } from './src/I18nContext';
@@ -182,7 +183,8 @@ function Root() {
   );
 
   // Один и тот же набор шторок: внутри карточки, когда она открыта, иначе в корне.
-  const sheets = (
+  // Обе живут ради предложения цены — пока оно выключено (features.ts), их нет.
+  const sheets = !OFFERS_ENABLED ? null : (
     <>
       <AuthSheet
         visible={authVisible}
