@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { Alert, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Alert, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -14,6 +14,9 @@ interface Props {
   onOpenCar: (car: Car) => void;
   onRemove: (car: Car) => void;
   onClearAll: () => void;
+  /** Каталог перечитывается — крутим индикатор жеста. */
+  refreshing: boolean;
+  onRefresh: () => void;
 }
 
 function Row({
@@ -51,7 +54,14 @@ function Row({
   );
 }
 
-export function LikesScreen({ liked, onOpenCar, onRemove, onClearAll }: Props) {
+export function LikesScreen({
+  liked,
+  onOpenCar,
+  onRemove,
+  onClearAll,
+  refreshing,
+  onRefresh,
+}: Props) {
   const c = useColors();
   const t = useT();
   const styles = useMemo(() => makeStyles(c), [c]);
@@ -87,6 +97,10 @@ export function LikesScreen({ liked, onOpenCar, onRemove, onClearAll }: Props) {
         renderItem={({ item }) => <Row car={item} onOpen={onOpenCar} onRemove={onRemove} />}
         contentContainerStyle={liked.length ? styles.list : styles.listEmpty}
         showsVerticalScrollIndicator={false}
+        // Здесь список, а не колода: тянуть вниз — привычнее любой кнопки.
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={c.textDim} />
+        }
         ListEmptyComponent={
           <View style={styles.empty}>
             <Ionicons name="heart-outline" size={54} color={c.textFaint} />

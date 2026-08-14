@@ -47,7 +47,8 @@ function Root() {
   /** Машина, ради которой открыли вход — после успеха сразу ведём к форме цены. */
   const pendingOffer = useRef<Car | null>(null);
 
-  const hydrated = useRef(false);
+  /** Хранилище прочитано. Состоянием, а не ref: от него зависит чистка id ниже. */
+  const [hydrated, setHydrated] = useState(false);
 
   /**
    * Колода — производное от каталога и фильтров, а не отдельное состояние.
@@ -89,7 +90,7 @@ function Root() {
       setFilters(state.filters);
       setLiked(state.liked);
       setPassed(state.passed);
-      hydrated.current = true;
+      setHydrated(true);
     });
     return () => {
       active = false;
@@ -97,11 +98,28 @@ function Root() {
   }, []);
 
   useEffect(() => {
-    if (hydrated.current) saveLiked(liked);
-  }, [liked]);
+    if (hydrated) saveLiked(liked);
+  }, [hydrated, liked]);
   useEffect(() => {
-    if (hydrated.current) savePassed(passed);
-  }, [passed]);
+    if (hydrated) savePassed(passed);
+  }, [hydrated, passed]);
+
+  /**
+   * Каталог приехал — выкидываем id, которых в нём больше нет: объявление сняли
+   * или удалили, а счётчик на вкладке продолжал их считать, потому что считал
+   * сохранённые id, а не живые машины.
+   *
+   * Пустой каталог не трогаем: это сетевой сбой или пустая выдача фильтра на
+   * сервере, а не «всё удалили» — иначе один неудачный запрос стёр бы избранное.
+   */
+  useEffect(() => {
+    if (!hydrated || loading || error || cars.length === 0) return;
+    const alive = new Set(cars.map((car) => car.id));
+    const keep = (ids: string[]) =>
+      ids.every((id) => alive.has(id)) ? ids : ids.filter((id) => alive.has(id));
+    setLiked(keep);
+    setPassed(keep);
+  }, [hydrated, cars, loading, error]);
 
   const handleSwipe = useCallback((car: Car, direction: SwipeDirection) => {
     setIndex((i) => i + 1);
@@ -229,13 +247,15 @@ function Root() {
             onOpenCar={setDetailCar}
             onRemove={handleRemove}
             onClearAll={handleClearLiked}
+            refreshing={loading}
+            onRefresh={reload}
           />
         ) : (
           <ProfileScreen
             user={user}
             offers={offers}
             carById={(id) => byId.get(id)}
-            likedCount={liked.length}
+            likedCount={likedCars.length}
             onSignIn={() => setAuthVisible(true)}
             onSignOut={signOut}
             onOpenCar={setDetailCar}
@@ -244,7 +264,9 @@ function Root() {
       </SafeAreaView>
 
       <SafeAreaView edges={['bottom']} style={{ backgroundColor: colors.bgElevated }}>
-        <TabBar active={tab} likesCount={liked.length} onChange={setTab} />
+        {/* Счётчик — по живым машинам, а не по сохранённым id: удалённое
+            объявление не должно висеть цифрой на вкладке. */}
+        <TabBar active={tab} likesCount={likedCars.length} onChange={setTab} />
       </SafeAreaView>
 
       <FiltersSheet

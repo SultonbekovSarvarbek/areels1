@@ -84,6 +84,22 @@ export function DeckScreen({
               color={c.text}
             />
           </Pressable>
+          {/* Каталог сам себя не перечитывает: снятые объявления и новые машины
+              появляются только после запроса, а закрывать приложение ради этого
+              никто не станет. */}
+          <Pressable
+            style={styles.iconBtn}
+            onPress={onRetry}
+            hitSlop={8}
+            disabled={loading}
+            accessibilityLabel={t.refresh}
+          >
+            {loading ? (
+              <ActivityIndicator size="small" color={c.textDim} />
+            ) : (
+              <Ionicons name="refresh" size={20} color={c.text} />
+            )}
+          </Pressable>
           <Pressable style={styles.iconBtn} onPress={onOpenFilters} hitSlop={8}>
             <Ionicons name="options-outline" size={20} color={c.text} />
             {activeFilters > 0 && (
