@@ -67,6 +67,8 @@ interface Props {
   onOfferPress: (car: Car) => void;
   isLiked: boolean;
   onToggleLike: (car: Car) => void;
+  /** Открыть шторку жалобы и блокировки продавца (../components/ReportSheet). */
+  onReport: (car: Car) => void;
   onClose: () => void;
   /**
    * Шторки, которые должны открываться поверх карточки. iOS показывает модалку
@@ -109,6 +111,7 @@ export function CarDetailScreen({
   isLiked,
   onOfferPress,
   onToggleLike,
+  onReport,
   onClose,
   children,
 }: Props) {
@@ -281,6 +284,20 @@ export function CarDetailScreen({
 
                 {/* Продавца целиком показывает футер: отдельная карточка с
                     аватаркой повторяла то, что и так стоит над кнопкой звонка. */}
+
+                {/* Жалоба стоит после всего содержания объявления: чтобы на неё
+                    нажать, надо сперва это содержание прочитать. Шторка за ней
+                    умеет и заблокировать продавца. */}
+                <Pressable
+                  style={({ pressed }) => [styles.reportRow, pressed && styles.contactPressed]}
+                  onPress={() => onReport(car)}
+                >
+                  <Ionicons name="flag-outline" size={17} color={c.skip} />
+                  <Text style={styles.reportText}>{t.report}</Text>
+                  <Ionicons name="chevron-forward" size={15} color={c.textFaint} />
+                </Pressable>
+
+                <Text style={styles.moderationNote}>{t.moderationNote}</Text>
               </View>
             </ScrollView>
 
@@ -410,6 +427,22 @@ const makeStyles = (c: Palette) =>
     specValue: { color: c.text, fontSize: 15, fontWeight: '600' },
     specValueEco: { color: c.like, fontWeight: '700' },
     description: { color: c.textDim, fontSize: 15, lineHeight: 22 },
+    reportRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+      marginTop: 26,
+      paddingHorizontal: 14,
+      paddingVertical: 13,
+      borderRadius: radius.md,
+      borderWidth: 1,
+      borderColor: c.border,
+      backgroundColor: c.card,
+    },
+    reportText: { flex: 1, color: c.skip, fontSize: 15, fontWeight: '700' },
+    // Обещание про сутки стоит там же, где кнопка: иначе его прочтут только те,
+    // кто дойдёт до условий использования.
+    moderationNote: { color: c.textFaint, fontSize: 12, lineHeight: 18, marginTop: 10 },
     footer: {
       paddingHorizontal: 20,
       paddingTop: 12,

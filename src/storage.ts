@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Filters, Offer, User, emptyFilters } from './types';
+import { BlockedSeller, Filters, Offer, User, emptyFilters } from './types';
 import { ThemeName } from './theme';
 import { Lang } from './i18n';
 
@@ -13,6 +13,10 @@ const KEYS = {
   lang: `${PREFIX}lang`,
   user: `${PREFIX}user`,
   offers: `${PREFIX}offers`,
+  consent: `${PREFIX}consent`,
+  device: `${PREFIX}device`,
+  blockedSellers: `${PREFIX}blockedSellers`,
+  reported: `${PREFIX}reported`,
 };
 
 /** Префикс до переименования приложения: у тестировщиков данные лежат ещё под ним. */
@@ -156,6 +160,70 @@ export async function saveOffers(offers: Offer[]): Promise<void> {
     // игнорируем
   }
 }
+
+// ─── Согласие с условиями ───────────────────────────────────────────────────
+
+/**
+ * Версия принятых условий. Меняем её, когда правки в legal.ts затрагивают
+ * правила поведения, — тогда согласие спросят заново. Косметические правки
+ * версию не двигают, иначе экран будет всплывать после каждой опечатки.
+ */
+export const CONSENT_VERSION = '1';
+
+/** Принял ли пользователь текущую версию условий. */
+export async function loadConsent(): Promise<boolean> {
+  return (await getItem(KEYS.consent)) === CONSENT_VERSION;
+}
+
+export async function saveConsent(): Promise<void> {
+  try {
+    await AsyncStorage.setItem(KEYS.consent, CONSENT_VERSION);
+  } catch {
+    // Не записалось — согласие спросят при следующем запуске. Не страшно.
+  }
+}
+
+// ─── Жалобы и блокировки ────────────────────────────────────────────────────
+
+/**
+ * Идентификатор устройства для жалоб. Аккаунта у покупателя нет, а серверу
+ * нужно отличать двадцать жалоб от двадцати человек от двадцати нажатий одного.
+ * Случайная строка, ни с чем не связанная и никуда, кроме поля deviceId в
+ * жалобе, не уходящая.
+ */
+export async function loadDeviceId(): Promise<string> {
+  const saved = await getItem(KEYS.device);
+  if (saved) return saved;
+
+  const generated = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 12)}`;
+  try {
+    await AsyncStorage.setItem(KEYS.device, generated);
+  } catch {
+    // Не сохранился — на следующем запуске выпишем новый. Хуже только тем,
+    // что одно устройство сможет пожаловаться на объявление дважды.
+  }
+  return generated;
+}
+
+const isBlockedSellers = (v: unknown): v is BlockedSeller[] =>
+  Array.isArray(v) &&
+  v.every((s) => s && typeof s.id === 'string' && typeof s.name === 'string');
+
+/** Заблокированные продавцы — с именами, чтобы список в профиле был читаемым. */
+export const loadBlockedSellers = async () =>
+  (await readJson(KEYS.blockedSellers, isBlockedSellers)) ?? [];
+
+export async function saveBlockedSellers(sellers: BlockedSeller[]): Promise<void> {
+  try {
+    await AsyncStorage.setItem(KEYS.blockedSellers, JSON.stringify(sellers));
+  } catch {
+    // Не сохранилось — блокировка доживёт до перезапуска.
+  }
+}
+
+/** Объявления, на которые это устройство уже пожаловалось: их прячем сразу. */
+export const loadReported = () => readIds(KEYS.reported);
+export const saveReported = (ids: string[]) => writeIds(KEYS.reported, ids);
 
 export async function saveFilters(filters: Filters): Promise<void> {
   try {

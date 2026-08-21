@@ -19,6 +19,7 @@ interface Props {
   onSwipe: (car: Car, direction: SwipeDirection) => void;
   onOpenFilters: () => void;
   onOpenCar: (car: Car) => void;
+  onReport: (car: Car) => void;
   onToggleTheme: () => void;
   themeName: ThemeName;
   /** Каталог грузится с сервера — колоды ещё нет. */
@@ -35,6 +36,7 @@ export function DeckScreen({
   onSwipe,
   onOpenFilters,
   onOpenCar,
+  onReport,
   onToggleTheme,
   themeName,
   loading,
@@ -145,6 +147,7 @@ export function DeckScreen({
             index={index}
             onSwipe={onSwipe}
             onPressDetails={onOpenCar}
+            onReport={onReport}
           />
         )}
       </View>

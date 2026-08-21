@@ -14,6 +14,8 @@ import { BrandBadge } from './BrandBadge';
 interface Props {
   car: Car;
   onPressDetails?: (car: Car) => void;
+  /** Жалоба прямо из колоды — до того, как человек откроет объявление. */
+  onReport?: (car: Car) => void;
 }
 
 function Chip({
@@ -34,7 +36,7 @@ function Chip({
   );
 }
 
-function CarCardBase({ car, onPressDetails }: Props) {
+function CarCardBase({ car, onPressDetails, onReport }: Props) {
   const t = useT();
   const c = useColors();
 
@@ -56,6 +58,19 @@ function CarCardBase({ car, onPressDetails }: Props) {
 
       <View style={styles.topRow}>
         <BrandBadge brand={car.brand} />
+        {/* Пожаловаться можно, не открывая объявление: в колоде оскорбительное
+            видно с первого кадра, и заставлять ради жалобы проваливаться внутрь
+            значит не получить жалобу вовсе. */}
+        {onReport && (
+          <Pressable
+            style={({ pressed }) => [styles.reportBtn, pressed && styles.reportBtnPressed]}
+            onPress={() => onReport(car)}
+            hitSlop={10}
+            accessibilityLabel={t.report}
+          >
+            <Ionicons name="flag-outline" size={16} color={fixed.onPhoto} />
+          </Pressable>
+        )}
       </View>
 
       <LinearGradient
@@ -112,9 +127,22 @@ const styles = StyleSheet.create({
   topRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingTop: 16,
   },
+  // Стеклянная плашка, как круглые кнопки в галерее: поверх фото любой яркости.
+  reportBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: fixed.glass,
+    borderWidth: 1,
+    borderColor: fixed.glassBorder,
+  },
+  reportBtnPressed: { backgroundColor: fixed.glassPressed },
   info: { position: 'absolute', left: 18, right: 18, bottom: 18, gap: 8 },
   price: { color: fixed.onPhoto, fontSize: 32, fontWeight: '800', letterSpacing: -0.5 },
   // Акцент на модели, а не на марке: марка уже показана значком в углу фото.

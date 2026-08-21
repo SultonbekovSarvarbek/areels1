@@ -1,4 +1,13 @@
-import { BodyType, City, Condition, Drive, Fuel, SellerType, Transmission } from './types';
+import {
+  BodyType,
+  City,
+  Condition,
+  Drive,
+  Fuel,
+  ReportReason,
+  SellerType,
+  Transmission,
+} from './types';
 
 export type Lang = 'ru' | 'uz' | 'uzc';
 
@@ -139,6 +148,48 @@ interface Dict {
   unitL: string;
   unitHp: string;
 
+  // Согласие с условиями — экран первого запуска
+  consentTitle: string;
+  consentIntro: string;
+  consentRuleModeration: string;
+  consentRuleZero: string;
+  consentRuleReport: string;
+  consentRuleBlock: string;
+  consentReadTerms: string;
+  consentReadPrivacy: string;
+  consentNote: string;
+  consentAccept: string;
+
+  // Жалоба на объявление
+  report: string;
+  reportTitle: string;
+  reportSubtitle: string;
+  reportReason: Record<ReportReason, string>;
+  reportCommentLabel: string;
+  reportCommentPlaceholder: string;
+  reportSend: string;
+  reportSending: string;
+  reportPickReason: string;
+  reportDoneTitle: string;
+  reportDoneText: string;
+  reportDoneBtn: string;
+  reportFailTitle: string;
+  reportFailText: string;
+  /** Жалоба уже отправлена с этого устройства — объявление скрыто. */
+  reportAlready: string;
+
+  // Блокировка продавца
+  blockSeller: string;
+  blockTitle: string;
+  blockText: (seller: string) => string;
+  blockConfirm: string;
+  blockedSection: string;
+  blockedCount: (n: number) => string;
+  blockedEmpty: string;
+  unblock: string;
+  /** Пояснение под разделом — оно же ответ на вопрос «а что модерация делает». */
+  moderationNote: string;
+
   bodyType: Record<BodyType, string>;
   fuel: Record<Fuel, string>;
   transmission: Record<Transmission, string>;
@@ -274,6 +325,59 @@ const ru: Dict = {
   unitKm: 'км',
   unitL: 'л',
   unitHp: 'л.с.',
+
+  consentTitle: 'Правила AvtoLike',
+  consentIntro:
+    'Объявления в AvtoLike размещают люди. Чтобы каталогом было безопасно пользоваться, мы просим согласиться с несколькими правилами.',
+  consentRuleModeration: 'Каждое объявление проверяет модератор до публикации.',
+  consentRuleZero:
+    'Нулевая терпимость к оскорбительному контенту, обману и злоупотреблениям — без исключений.',
+  consentRuleReport:
+    'На любое объявление можно пожаловаться. Жалобы разбираем в течение 24 часов и удаляем нарушения.',
+  consentRuleBlock: 'Любого продавца можно заблокировать — его объявлений вы больше не увидите.',
+  consentReadTerms: 'Условия использования',
+  consentReadPrivacy: 'Политика конфиденциальности',
+  consentNote:
+    'Нажимая «Принимаю», вы соглашаетесь с условиями использования и политикой конфиденциальности.',
+  consentAccept: 'Принимаю',
+
+  report: 'Пожаловаться',
+  reportTitle: 'Пожаловаться на объявление',
+  reportSubtitle:
+    'Расскажите, что не так. Мы разберём жалобу в течение 24 часов, а объявление скроем у вас сразу.',
+  reportReason: {
+    fraud: 'Мошенничество или обман',
+    notForSale: 'Машина продана или не продаётся',
+    wrongInfo: 'Недостоверные данные',
+    foreignPhotos: 'Чужие фотографии',
+    offensive: 'Оскорбления, непристойности',
+    spam: 'Спам или реклама',
+    other: 'Другое',
+  },
+  reportCommentLabel: 'Подробности — необязательно',
+  reportCommentPlaceholder: 'Что именно не так с объявлением',
+  reportSend: 'Отправить жалобу',
+  reportSending: 'Отправляем…',
+  reportPickReason: 'Выберите причину',
+  reportDoneTitle: 'Жалоба отправлена',
+  reportDoneText:
+    'Модератор разберёт её в течение 24 часов. Это объявление больше не появится в вашей колоде.',
+  reportDoneBtn: 'Готово',
+  reportFailTitle: 'Жалоба не отправилась',
+  reportFailText: 'Проверьте соединение и попробуйте ещё раз.',
+  reportAlready: 'Вы уже жаловались на это объявление',
+
+  blockSeller: 'Заблокировать продавца',
+  blockTitle: 'Заблокировать продавца?',
+  blockText: (seller) =>
+    `Объявления продавца ${seller} исчезнут из колоды и избранного. Снять блокировку можно в профиле.`,
+  blockConfirm: 'Заблокировать',
+  blockedSection: 'Заблокированные',
+  blockedCount: (n) => `${n} ${plural(n, 'продавец', 'продавца', 'продавцов')}`,
+  blockedEmpty: 'Вы никого не блокировали',
+  unblock: 'Разблокировать',
+  moderationNote:
+    'Каждое объявление проверяет модератор. Жалобы разбираем в течение 24 часов: нарушения удаляем, продавцов-нарушителей отключаем от сервиса.',
 
   bodyType: {
     sedan: 'Седан',
@@ -438,6 +542,60 @@ const uz: Dict = {
   unitL: 'l',
   unitHp: 'o.k.',
 
+  consentTitle: 'AvtoLike qoidalari',
+  consentIntro:
+    "AvtoLike'dagi e'lonlarni odamlar joylaydi. Katalogdan xavfsiz foydalanish uchun bir necha qoidaga rozilik so'raymiz.",
+  consentRuleModeration: "Har bir e'lonni chop etishdan oldin moderator tekshiradi.",
+  consentRuleZero:
+    "Haqoratli kontent, aldov va suiiste'molga mutlaqo yo'l qo'yilmaydi — istisnosiz.",
+  consentRuleReport:
+    "Istalgan e'lon ustidan shikoyat qilish mumkin. Shikoyatlarni 24 soat ichida ko'rib chiqamiz va buzilishlarni o'chiramiz.",
+  consentRuleBlock:
+    "Istalgan sotuvchini bloklash mumkin — uning e'lonlarini boshqa ko'rmaysiz.",
+  consentReadTerms: 'Foydalanish shartlari',
+  consentReadPrivacy: 'Maxfiylik siyosati',
+  consentNote:
+    "«Qabul qilaman» tugmasini bosish bilan siz foydalanish shartlari va maxfiylik siyosatiga rozilik bildirasiz.",
+  consentAccept: 'Qabul qilaman',
+
+  report: 'Shikoyat qilish',
+  reportTitle: "E'lon ustidan shikoyat",
+  reportSubtitle:
+    "Nima noto'g'riligini ayting. Shikoyatni 24 soat ichida ko'rib chiqamiz, e'lonni esa sizdan darhol yashiramiz.",
+  reportReason: {
+    fraud: 'Firibgarlik yoki aldov',
+    notForSale: 'Mashina sotilgan yoki sotilmayapti',
+    wrongInfo: "Ma'lumotlar haqiqatga to'g'ri kelmaydi",
+    foreignPhotos: "O'zganing suratlari",
+    offensive: 'Haqorat, nomaqbul mazmun',
+    spam: 'Spam yoki reklama',
+    other: 'Boshqa',
+  },
+  reportCommentLabel: 'Tafsilotlar — majburiy emas',
+  reportCommentPlaceholder: "E'londa aynan nima noto'g'ri",
+  reportSend: 'Shikoyatni yuborish',
+  reportSending: 'Yuborilmoqda…',
+  reportPickReason: 'Sababni tanlang',
+  reportDoneTitle: 'Shikoyat yuborildi',
+  reportDoneText:
+    "Moderator uni 24 soat ichida ko'rib chiqadi. Bu e'lon endi to'plamingizda ko'rinmaydi.",
+  reportDoneBtn: 'Tayyor',
+  reportFailTitle: 'Shikoyat yuborilmadi',
+  reportFailText: "Aloqani tekshiring va qaytadan urinib ko'ring.",
+  reportAlready: "Siz bu e'lon ustidan allaqachon shikoyat qilgansiz",
+
+  blockSeller: 'Sotuvchini bloklash',
+  blockTitle: 'Sotuvchi bloklansinmi?',
+  blockText: (seller) =>
+    `${seller} sotuvchining e'lonlari to'plamdan va saralangandan yo'qoladi. Blokni profilda olib tashlash mumkin.`,
+  blockConfirm: 'Bloklash',
+  blockedSection: 'Bloklanganlar',
+  blockedCount: (n) => `${n} ta sotuvchi`,
+  blockedEmpty: 'Siz hech kimni bloklamagansiz',
+  unblock: 'Blokdan chiqarish',
+  moderationNote:
+    "Har bir e'lonni moderator tekshiradi. Shikoyatlarni 24 soat ichida ko'rib chiqamiz: buzilishlarni o'chiramiz, qoidabuzar sotuvchilarni xizmatdan chetlatamiz.",
+
   bodyType: {
     sedan: 'Sedan',
     hatchback: 'Xetchbek',
@@ -598,6 +756,59 @@ const uzc: Dict = {
   unitKm: 'км',
   unitL: 'л',
   unitHp: 'о.к.',
+
+  consentTitle: 'AvtoLike қоидалари',
+  consentIntro:
+    'AvtoLike даги эълонларни одамлар жойлайди. Каталогдан хавфсиз фойдаланиш учун бир неча қоидага розилик сўраймиз.',
+  consentRuleModeration: 'Ҳар бир эълонни чоп этишдан олдин модератор текширади.',
+  consentRuleZero:
+    'Ҳақоратли контент, алдов ва суиистеъмолга мутлақо йўл қўйилмайди — истисносиз.',
+  consentRuleReport:
+    'Исталган эълон устидан шикоят қилиш мумкин. Шикоятларни 24 соат ичида кўриб чиқамиз ва бузилишларни ўчирамиз.',
+  consentRuleBlock: 'Исталган сотувчини блоклаш мумкин — унинг эълонларини бошқа кўрмайсиз.',
+  consentReadTerms: 'Фойдаланиш шартлари',
+  consentReadPrivacy: 'Махфийлик сиёсати',
+  consentNote:
+    '«Қабул қиламан» тугмасини босиш билан сиз фойдаланиш шартлари ва махфийлик сиёсатига розилик билдирасиз.',
+  consentAccept: 'Қабул қиламан',
+
+  report: 'Шикоят қилиш',
+  reportTitle: 'Эълон устидан шикоят',
+  reportSubtitle:
+    'Нима нотўғрилигини айтинг. Шикоятни 24 соат ичида кўриб чиқамиз, эълонни эса сиздан дарҳол яширамиз.',
+  reportReason: {
+    fraud: 'Фирибгарлик ёки алдов',
+    notForSale: 'Машина сотилган ёки сотилмаяпти',
+    wrongInfo: 'Маълумотлар ҳақиқатга тўғри келмайди',
+    foreignPhotos: 'Ўзганинг суратлари',
+    offensive: 'Ҳақорат, номақбул мазмун',
+    spam: 'Спам ёки реклама',
+    other: 'Бошқа',
+  },
+  reportCommentLabel: 'Тафсилотлар — мажбурий эмас',
+  reportCommentPlaceholder: 'Эълонда айнан нима нотўғри',
+  reportSend: 'Шикоятни юбориш',
+  reportSending: 'Юборилмоқда…',
+  reportPickReason: 'Сабабни танланг',
+  reportDoneTitle: 'Шикоят юборилди',
+  reportDoneText:
+    'Модератор уни 24 соат ичида кўриб чиқади. Бу эълон энди тўпламингизда кўринмайди.',
+  reportDoneBtn: 'Тайёр',
+  reportFailTitle: 'Шикоят юборилмади',
+  reportFailText: 'Алоқани текширинг ва қайтадан уриниб кўринг.',
+  reportAlready: 'Сиз бу эълон устидан аллақачон шикоят қилгансиз',
+
+  blockSeller: 'Сотувчини блоклаш',
+  blockTitle: 'Сотувчи блоклансинми?',
+  blockText: (seller) =>
+    `${seller} сотувчининг эълонлари тўпламдан ва саралангандан йўқолади. Блокни профилда олиб ташлаш мумкин.`,
+  blockConfirm: 'Блоклаш',
+  blockedSection: 'Блокланганлар',
+  blockedCount: (n) => `${n} та сотувчи`,
+  blockedEmpty: 'Сиз ҳеч кимни блокламагансиз',
+  unblock: 'Блокдан чиқариш',
+  moderationNote:
+    'Ҳар бир эълонни модератор текширади. Шикоятларни 24 соат ичида кўриб чиқамиз: бузилишларни ўчирамиз, қоидабузар сотувчиларни хизматдан четлатамиз.',
 
   bodyType: {
     sedan: 'Седан',

@@ -36,7 +36,48 @@ export type City =
 
 export type SwipeDirection = 'left' | 'right';
 
+/**
+ * Причины жалобы на объявление. Коды те же, что в схеме базы
+ * (server/prisma/schema.prisma, enum ReportReason): сервер принимает именно их,
+ * а подписи на трёх языках живут в i18n.
+ */
+export type ReportReason =
+  | 'fraud'
+  | 'notForSale'
+  | 'wrongInfo'
+  | 'foreignPhotos'
+  | 'offensive'
+  | 'spam'
+  | 'other';
+
+/**
+ * Заблокированный продавец. Имя храним рядом с идентификатором, а не достаём из
+ * каталога: объявления заблокированного из каталога как раз и вычищены, и
+ * список в профиле показывал бы одни идентификаторы.
+ */
+export interface BlockedSeller {
+  id: string;
+  name: string;
+}
+
+/** Порядок кнопок в шторке жалобы — от самого частого к «Другое». */
+export const REPORT_REASONS: ReportReason[] = [
+  'fraud',
+  'notForSale',
+  'wrongInfo',
+  'foreignPhotos',
+  'offensive',
+  'spam',
+  'other',
+];
+
 export interface Seller {
+  /**
+   * Идентификатор продавца в базе. Нужен для локальной блокировки: заблокировав
+   * продавца, покупатель перестаёт видеть все его объявления, а не одно
+   * (src/ModerationContext.tsx).
+   */
+  id: string;
   name: string;
   type: SellerType;
   /** Номер в формате E.164, без пробелов: +998901234567 */

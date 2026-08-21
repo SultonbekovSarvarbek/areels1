@@ -7,6 +7,8 @@
  * - photos обязан быть непустым: клиент индексирует car.photos[0] без проверки
  *   (CarCard.tsx, LikesScreen.tsx, ProfileScreen.tsx).
  * - telegram — username без «@», клиент подставляет его в https://t.me/...
+ * - seller.id клиенту нужен для локальной блокировки продавца: заблокировав
+ *   одного, покупатель перестаёт видеть все его объявления (src/ModerationContext.tsx).
  * - power и hot необязательны, поэтому кладём поля, только когда они есть:
  *   у объявлений из бота мощности нет, клиент в этом случае показывает
  *   один объём двигателя (src/utils/format.ts).
@@ -19,6 +21,7 @@ export type ListingRow = Listing & { seller: SellerRow; photos: Photo[] };
 
 function toSeller(row: SellerRow): Seller {
   return {
+    id: row.id,
     name: row.name,
     type: row.type,
     phone: row.phone,

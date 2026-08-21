@@ -13,7 +13,7 @@ import { randomUUID, timingSafeEqual } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
-import type { ListingStatus } from '@prisma/client';
+import type { ListingStatus, ReportStatus } from '@prisma/client';
 
 import { db, listingInclude } from './db.ts';
 import { env, optionalBotToken } from './env.ts';
@@ -159,10 +159,10 @@ export function registerAdmin(app: FastifyInstance): void {
     async (request) => {
       const status = parseStatus(request.query.status);
 
-      const [rows, pending, published, rejected, archived] = await Promise.all([
+      const [rows, pending, published, rejected, archived, reports] = await Promise.all([
         db.listing.findMany({
           where: { status },
-          include: listingInclude,
+          include: { ...listingInclude, reports: { where: { status: 'open' } } },
           // Ожидающие — с самых старых: очередь, а не лента.
           orderBy: { createdAt: status === 'pending' ? 'asc' : 'desc' },
           take: 100,
@@ -171,10 +171,11 @@ export function registerAdmin(app: FastifyInstance): void {
         db.listing.count({ where: { status: 'published' } }),
         db.listing.count({ where: { status: 'rejected' } }),
         db.listing.count({ where: { status: 'archived' } }),
+        db.report.count({ where: { status: 'open' } }),
       ]);
 
       return {
-        counts: { pending, published, rejected, archived },
+        counts: { pending, published, rejected, archived, reports },
         listings: rows.map((row) => ({
           id: row.id,
           brand: row.brand,
@@ -200,12 +201,16 @@ export function registerAdmin(app: FastifyInstance): void {
           createdAt: row.createdAt,
           moderatedAt: row.moderatedAt,
           photos: row.photos.map((photo) => photo.url),
+          openReports: row.reports.length,
           seller: {
+            id: row.seller.id,
             name: row.seller.name,
             phone: row.seller.phone,
             type: row.seller.type,
             telegram: row.seller.telegramUsername,
             lang: row.seller.lang,
+            blockedAt: row.seller.blockedAt,
+            blockReason: row.seller.blockReason,
           },
         })),
       };
@@ -278,6 +283,182 @@ export function registerAdmin(app: FastifyInstance): void {
       if (!listing) return reply.code(404).send({ error: 'Объявление не найдено' });
 
       await db.listing.delete({ where: { id: listing.id } });
+      return { ok: true };
+    },
+  );
+
+  // ─── Жалобы ────────────────────────────────────────────────────────────────
+  //
+  // Отдельная очередь, а не пометка на объявлении: сутки на реакцию мы обещаем
+  // в условиях использования, и модератору нужен список, который видно целиком
+  // и который заканчивается.
+
+  app.get<{ Querystring: { status?: string } }>(
+    '/api/admin/reports',
+    { preHandler: guardAuth },
+    async (request) => {
+      const status = (['open', 'resolved', 'dismissed'] as ReportStatus[]).includes(
+        request.query.status as ReportStatus,
+      )
+        ? (request.query.status as ReportStatus)
+        : 'open';
+
+      const rows = await db.report.findMany({
+        where: { status },
+        // Самые старые сверху: это очередь со сроком, а не лента новостей.
+        orderBy: { createdAt: status === 'open' ? 'asc' : 'desc' },
+        take: 200,
+        include: { listing: { include: listingInclude } },
+      });
+
+      return {
+        reports: rows.map((row) => ({
+          id: row.id,
+          reason: row.reason,
+          comment: row.comment,
+          status: row.status,
+          createdAt: row.createdAt,
+          resolvedAt: row.resolvedAt,
+          resolution: row.resolution,
+          listing: {
+            id: row.listing.id,
+            brand: row.listing.brand,
+            model: row.listing.model,
+            year: row.listing.year,
+            price: row.listing.price,
+            city: row.listing.city,
+            description: row.listing.description,
+            status: row.listing.status,
+            photos: row.listing.photos.map((photo) => photo.url),
+            seller: {
+              id: row.listing.seller.id,
+              name: row.listing.seller.name,
+              phone: row.listing.seller.phone,
+              telegram: row.listing.seller.telegramUsername,
+              blockedAt: row.listing.seller.blockedAt,
+              blockReason: row.listing.seller.blockReason,
+            },
+          },
+        })),
+      };
+    },
+  );
+
+  /** Жалоба не подтвердилась: объявление остаётся, жалоба закрывается. */
+  app.post<{ Params: { id: string } }>(
+    '/api/admin/reports/:id/dismiss',
+    { preHandler: guardAuth },
+    async (request, reply) => {
+      const report = await db.report.findUnique({ where: { id: request.params.id } });
+      if (!report) return reply.code(404).send({ error: 'Жалоба не найдена' });
+
+      await db.report.update({
+        where: { id: report.id },
+        data: { status: 'dismissed', resolvedAt: new Date(), resolution: 'не подтвердилась' },
+      });
+      return { ok: true };
+    },
+  );
+
+  /**
+   * Снять объявление по жалобе. Отдельно от «Отклонить»: там продавец получает
+   * причину и может исправить, здесь объявление уходит в архив, а все открытые
+   * жалобы на него закрываются одним движением — иначе они висели бы в очереди
+   * после того, как вопрос решён.
+   */
+  app.post<{ Params: { id: string }; Body: { reason?: string } }>(
+    '/api/admin/listings/:id/hide',
+    { preHandler: guardAuth },
+    async (request, reply) => {
+      const reason = request.body?.reason?.trim().slice(0, 300) || 'нарушение правил сервиса';
+
+      const listing = await db.listing.findUnique({
+        where: { id: request.params.id },
+        include: { seller: true },
+      });
+      if (!listing) return reply.code(404).send({ error: 'Объявление не найдено' });
+
+      await db.$transaction([
+        db.listing.update({
+          where: { id: listing.id },
+          data: { status: 'archived', rejectionReason: reason, moderatedAt: new Date() },
+        }),
+        db.report.updateMany({
+          where: { listingId: listing.id, status: 'open' },
+          data: { status: 'resolved', resolvedAt: new Date(), resolution: 'объявление снято' },
+        }),
+      ]);
+
+      const title = `${listing.brand} ${listing.model}, ${listing.year}`;
+      await notifySeller(
+        listing.seller.telegramId,
+        listing.seller.lang,
+        TEXT[listing.seller.lang].moderationRemoved(title, reason),
+      );
+
+      return { ok: true };
+    },
+  );
+
+  /**
+   * Бан продавца: его объявления уходят из каталога все разом, бот перестаёт
+   * принимать новые. Ровно то, чего требует 1.2 — «ejecting the user who
+   * provided the offending content».
+   */
+  app.post<{ Params: { id: string }; Body: { reason?: string } }>(
+    '/api/admin/sellers/:id/block',
+    { preHandler: guardAuth },
+    async (request, reply) => {
+      const reason = request.body?.reason?.trim();
+      if (!reason) return reply.code(400).send({ error: 'Нужна причина блокировки' });
+      if (reason.length > 300) return reply.code(400).send({ error: 'Причина до 300 символов' });
+
+      const seller = await db.seller.findUnique({ where: { id: request.params.id } });
+      if (!seller) return reply.code(404).send({ error: 'Продавец не найден' });
+
+      const now = new Date();
+      await db.$transaction([
+        db.seller.update({
+          where: { id: seller.id },
+          data: { blockedAt: now, blockReason: reason },
+        }),
+        // Объявления забаненного и так не отдаются каталогом, но статус
+        // приводим в соответствие: иначе в панели они висят «в каталоге».
+        db.listing.updateMany({
+          where: { sellerId: seller.id, status: 'published' },
+          data: { status: 'archived', rejectionReason: reason, moderatedAt: now },
+        }),
+        db.report.updateMany({
+          where: { listing: { sellerId: seller.id }, status: 'open' },
+          data: { status: 'resolved', resolvedAt: now, resolution: 'продавец заблокирован' },
+        }),
+      ]);
+
+      await notifySeller(
+        seller.telegramId,
+        seller.lang,
+        TEXT[seller.lang].sellerBlocked(reason),
+      );
+
+      return { ok: true };
+    },
+  );
+
+  /** Разбан — на случай ошибки модератора. Объявления придётся одобрить заново. */
+  app.post<{ Params: { id: string } }>(
+    '/api/admin/sellers/:id/unblock',
+    { preHandler: guardAuth },
+    async (request, reply) => {
+      const seller = await db.seller.findUnique({ where: { id: request.params.id } });
+      if (!seller) return reply.code(404).send({ error: 'Продавец не найден' });
+
+      await db.seller.update({
+        where: { id: seller.id },
+        data: { blockedAt: null, blockReason: null },
+      });
+
+      await notifySeller(seller.telegramId, seller.lang, TEXT[seller.lang].sellerUnblocked);
+
       return { ok: true };
     },
   );

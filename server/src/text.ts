@@ -205,6 +205,13 @@ interface BotText {
   /** Итоги модерации — их шлёт API, а не бот: одобряют из админки. */
   moderationApproved: (title: string) => string;
   moderationRejected: (title: string, reason: string) => string;
+  /** Объявление снято по жалобам покупателей — это не «исправьте и вернитесь». */
+  moderationRemoved: (title: string, reason: string) => string;
+  /** Продавец заблокирован: новые объявления от него бот не принимает. */
+  sellerBlocked: (reason: string) => string;
+  sellerUnblocked: string;
+  /** Ответ на попытку что-то сделать после блокировки. */
+  blockedNotice: (reason: string) => string;
 
   // Мои объявления
   myEmpty: string;
@@ -329,6 +336,14 @@ const ru: BotText = {
   moderationApproved: (title) => `✅ <b>${title}</b> — объявление одобрено и уже в приложении.`,
   moderationRejected: (title, reason) =>
     `❌ <b>${title}</b> — объявление отклонено.\nПричина: ${reason}\n\nИсправьте и разместите заново.`,
+  moderationRemoved: (title, reason) =>
+    `🚫 <b>${title}</b> — объявление снято с показа по жалобам пользователей.\nПричина: ${reason}\n\nПовторное размещение того же объявления приведёт к блокировке.`,
+  sellerBlocked: (reason) =>
+    `🚫 Ваш доступ к размещению объявлений заблокирован.\nПричина: ${reason}\n\nВсе ваши объявления сняты с показа. Если считаете это ошибкой — напишите в поддержку: /support`,
+  sellerUnblocked:
+    '✅ Блокировка снята. Вы снова можете размещать объявления — они пройдут обычную проверку модератором.',
+  blockedNotice: (reason) =>
+    `🚫 Ваш доступ заблокирован.\nПричина: ${reason}\n\nРазмещать объявления нельзя. Вопросы — в поддержку: /support`,
 
   myEmpty: 'У вас пока нет объявлений.',
   myArchived: 'снято с показа',
@@ -443,6 +458,14 @@ const uz: BotText = {
   moderationApproved: (title) => `✅ <b>${title}</b> — e'lon tasdiqlandi va ilovada ko'rinmoqda.`,
   moderationRejected: (title, reason) =>
     `❌ <b>${title}</b> — e'lon rad etildi.\nSababi: ${reason}\n\nTuzatib, qaytadan joylashtiring.`,
+  moderationRemoved: (title, reason) =>
+    `🚫 <b>${title}</b> — e'lon foydalanuvchilar shikoyatlari bo'yicha ko'rsatuvdan olindi.\nSababi: ${reason}\n\nXuddi shu e'lonni qayta joylash bloklanishga olib keladi.`,
+  sellerBlocked: (reason) =>
+    `🚫 E'lon joylash imkoniyatingiz bloklandi.\nSababi: ${reason}\n\nBarcha e'lonlaringiz ko'rsatuvdan olindi. Bu xato deb hisoblasangiz — qo'llab-quvvatlashga yozing: /support`,
+  sellerUnblocked:
+    "✅ Blok olib tashlandi. Endi yana e'lon joylashingiz mumkin — ular odatdagidek moderator tekshiruvidan o'tadi.",
+  blockedNotice: (reason) =>
+    `🚫 Sizning kirishingiz bloklangan.\nSababi: ${reason}\n\nE'lon joylash mumkin emas. Savollar — qo'llab-quvvatlashga: /support`,
 
   myEmpty: "Sizda hali e'lonlar yo'q.",
   myArchived: "ko'rsatuvdan olingan",
@@ -557,6 +580,14 @@ const uzc: BotText = {
   moderationApproved: (title) => `✅ <b>${title}</b> — эълон тасдиқланди ва иловада кўриняпти.`,
   moderationRejected: (title, reason) =>
     `❌ <b>${title}</b> — эълон рад этилди.\nСабаби: ${reason}\n\nТузатиб, қайтадан жойлаштиринг.`,
+  moderationRemoved: (title, reason) =>
+    `🚫 <b>${title}</b> — эълон фойдаланувчилар шикоятлари бўйича кўрсатувдан олинди.\nСабаби: ${reason}\n\nХудди шу эълонни қайта жойлаш блокланишга олиб келади.`,
+  sellerBlocked: (reason) =>
+    `🚫 Эълон жойлаш имкониятингиз блокланди.\nСабаби: ${reason}\n\nБарча эълонларингиз кўрсатувдан олинди. Бу хато деб ҳисобласангиз — қўллаб-қувватлашга ёзинг: /support`,
+  sellerUnblocked:
+    '✅ Блок олиб ташланди. Энди яна эълон жойлашингиз мумкин — улар одатдагидек модератор текширувидан ўтади.',
+  blockedNotice: (reason) =>
+    `🚫 Сизнинг киришингиз блокланган.\nСабаби: ${reason}\n\nЭълон жойлаш мумкин эмас. Саволлар — қўллаб-қувватлашга: /support`,
 
   myEmpty: 'Сизда ҳали эълонлар йўқ.',
   myArchived: 'кўрсатувдан олинган',

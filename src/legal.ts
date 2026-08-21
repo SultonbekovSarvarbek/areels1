@@ -31,7 +31,7 @@ const BOT = '@avtolike_uz_bot';
 const ru: Record<LegalKey, LegalDoc> = {
   terms: {
     title: 'Условия использования',
-    updated: 'Обновлено 13 августа 2026',
+    updated: 'Обновлено 20 августа 2026',
     intro:
       'AvtoLike — витрина объявлений о продаже автомобилей в Узбекистане. Пользуясь приложением, вы соглашаетесь с этими условиями.',
     sections: [
@@ -52,8 +52,20 @@ const ru: Record<LegalKey, LegalDoc> = {
         text: 'Выдумывать характеристики, ставить чужие или перерисованные фотографии, указывать цену, за которую вы не готовы продать, рекламировать другие сервисы, оскорблять людей, выгружать каталог автоматическими средствами.',
       },
       {
+        title: 'Нулевая терпимость к оскорбительному контенту',
+        text: 'Мы не терпим оскорбительный контент и злоупотребления — ни в каком объёме и ни в каком виде. Запрещены оскорбления, угрозы, непристойности, разжигание вражды по любому признаку, мошенничество и обман покупателя, а также любое домогательство к другим пользователям. Пользуясь приложением, вы соглашаетесь не размещать такой контент и не вести себя так по отношению к другим.',
+      },
+      {
         title: 'Модерация',
         text: 'Каждое объявление перед публикацией проверяет модератор. Мы можем отклонить объявление или снять его с показа, если оно нарушает эти условия; причину напишем в боте. При повторных нарушениях мы вправе отказать в размещении.',
+      },
+      {
+        title: 'Жалобы и срок реакции',
+        text: 'На любое объявление можно пожаловаться прямо в приложении: кнопка «Пожаловаться» есть и на карточке в колоде, и внутри объявления. Каждую жалобу мы рассматриваем в течение 24 часов. Подтвердившееся нарушение мы удаляем, а автора отключаем от сервиса без предупреждения и без возврата к размещению. Объявление, на которое пожаловались несколько человек, скрывается из каталога автоматически, ещё до решения модератора.',
+      },
+      {
+        title: 'Блокировка продавца',
+        text: 'Вы можете заблокировать любого продавца — его объявления полностью исчезнут из вашей колоды, избранного и поиска. Блокировка действует на вашем устройстве сразу и бессрочно; снять её можно в профиле, в разделе «Заблокированные».',
       },
       {
         title: 'За что мы не отвечаем',
@@ -75,7 +87,7 @@ const ru: Record<LegalKey, LegalDoc> = {
   },
   privacy: {
     title: 'Политика конфиденциальности',
-    updated: 'Обновлено 13 августа 2026',
+    updated: 'Обновлено 20 августа 2026',
     intro: 'Здесь написано, какие данные собирает AvtoLike и что с ними происходит.',
     sections: [
       {
@@ -121,7 +133,7 @@ const ru: Record<LegalKey, LegalDoc> = {
 const uz: Record<LegalKey, LegalDoc> = {
   terms: {
     title: 'Foydalanish shartlari',
-    updated: '2026-yil 13-avgustda yangilangan',
+    updated: '2026-yil 20-avgustda yangilangan',
     intro:
       "AvtoLike — O'zbekistonda avtomobil sotuvi e'lonlari vitrinasi. Ilovadan foydalanar ekansiz, ushbu shartlarga rozilik bildirasiz.",
     sections: [
@@ -142,8 +154,20 @@ const uz: Record<LegalKey, LegalDoc> = {
         text: "Xususiyatlarni o'ylab topish, o'zganing yoki tahrirlangan suratlarini qo'yish, o'zingiz rozi bo'lmagan narxni ko'rsatish, boshqa xizmatlarni reklama qilish, odamlarni haqorat qilish, katalogni avtomatik vositalar bilan yuklab olish.",
       },
       {
+        title: 'Haqoratli kontentga mutlaqo yo\'l qo\'yilmaydi',
+        text: "Biz haqoratli kontentga va suiiste'molga hech qanday hajmda va hech qanday ko'rinishda toqat qilmaymiz. Haqorat, tahdid, nomaqbul so'zlar, har qanday belgi bo'yicha adovat qo'zg'atish, firibgarlik va xaridorni aldash, shuningdek boshqa foydalanuvchilarni bezovta qilish taqiqlanadi. Ilovadan foydalanish bilan siz bunday kontent joylamaslikka va boshqalarga nisbatan shunday yo'l tutmaslikka rozilik bildirasiz.",
+      },
+      {
         title: 'Moderatsiya',
         text: "Har bir e'lonni chop etishdan oldin moderator tekshiradi. Shartlar buzilsa, e'lonni rad etishimiz yoki ko'rsatuvdan olib qo'yishimiz mumkin; sababini botda yozamiz. Qayta-qayta buzilsa, e'lon joylashni rad etishga haqlimiz.",
+      },
+      {
+        title: 'Shikoyatlar va javob muddati',
+        text: "Istalgan e'lon ustidan to'g'ridan-to'g'ri ilovada shikoyat qilish mumkin: «Shikoyat qilish» tugmasi ham to'plamdagi kartochkada, ham e'lon ichida bor. Har bir shikoyatni 24 soat ichida ko'rib chiqamiz. Tasdiqlangan buzilishni o'chiramiz, muallifini esa ogohlantirishsiz va qayta joylash imkoniyatisiz xizmatdan chetlatamiz. Bir necha kishi shikoyat qilgan e'lon moderator qaroridan oldin ham katalogdan avtomatik yashiriladi.",
+      },
+      {
+        title: 'Sotuvchini bloklash',
+        text: "Siz istalgan sotuvchini bloklashingiz mumkin — uning e'lonlari to'plamingizdan, saralanganingizdan va qidiruvdan butunlay yo'qoladi. Blok qurilmangizda darhol va muddatsiz ishlaydi; uni profildagi «Bloklanganlar» bo'limida olib tashlash mumkin.",
       },
       {
         title: 'Biz nima uchun javob bermaymiz',
@@ -165,7 +189,7 @@ const uz: Record<LegalKey, LegalDoc> = {
   },
   privacy: {
     title: 'Maxfiylik siyosati',
-    updated: '2026-yil 13-avgustda yangilangan',
+    updated: '2026-yil 20-avgustda yangilangan',
     intro:
       "Bu yerda AvtoLike qanday ma'lumotlarni yig'ishi va ular bilan nima bo'lishi yozilgan.",
     sections: [
@@ -212,7 +236,7 @@ const uz: Record<LegalKey, LegalDoc> = {
 const uzc: Record<LegalKey, LegalDoc> = {
   terms: {
     title: 'Фойдаланиш шартлари',
-    updated: '2026 йил 13 августда янгиланган',
+    updated: '2026 йил 20 августда янгиланган',
     intro:
       'AvtoLike — Ўзбекистонда автомобил сотуви эълонлари витринаси. Иловадан фойдаланар экансиз, ушбу шартларга розилик билдирасиз.',
     sections: [
@@ -233,8 +257,20 @@ const uzc: Record<LegalKey, LegalDoc> = {
         text: 'Хусусиятларни ўйлаб топиш, ўзганинг ёки таҳрирланган суратларини қўйиш, ўзингиз рози бўлмаган нархни кўрсатиш, бошқа хизматларни реклама қилиш, одамларни ҳақорат қилиш, каталогни автоматик воситалар билан юклаб олиш.',
       },
       {
+        title: 'Ҳақоратли контентга мутлақо йўл қўйилмайди',
+        text: 'Биз ҳақоратли контентга ва суиистеъмолга ҳеч қандай ҳажмда ва ҳеч қандай кўринишда тоқат қилмаймиз. Ҳақорат, таҳдид, номақбул сўзлар, ҳар қандай белги бўйича адоват қўзғатиш, фирибгарлик ва харидорни алдаш, шунингдек бошқа фойдаланувчиларни безовта қилиш тақиқланади. Иловадан фойдаланиш билан сиз бундай контент жойламасликка ва бошқаларга нисбатан шундай йўл тутмасликка розилик билдирасиз.',
+      },
+      {
         title: 'Модерация',
         text: 'Ҳар бир эълонни чоп этишдан олдин модератор текширади. Шартлар бузилса, эълонни рад этишимиз ёки кўрсатувдан олиб қўйишимиз мумкин; сабабини ботда ёзамиз. Қайта-қайта бузилса, эълон жойлашни рад этишга ҳақлимиз.',
+      },
+      {
+        title: 'Шикоятлар ва жавоб муддати',
+        text: 'Исталган эълон устидан тўғридан-тўғри иловада шикоят қилиш мумкин: «Шикоят қилиш» тугмаси ҳам тўпламдаги карточкада, ҳам эълон ичида бор. Ҳар бир шикоятни 24 соат ичида кўриб чиқамиз. Тасдиқланган бузилишни ўчирамиз, муаллифини эса огоҳлантиришсиз ва қайта жойлаш имкониятисиз хизматдан четлатамиз. Бир неча киши шикоят қилган эълон модератор қароридан олдин ҳам каталогдан автоматик яширилади.',
+      },
+      {
+        title: 'Сотувчини блоклаш',
+        text: 'Сиз исталган сотувчини блоклашингиз мумкин — унинг эълонлари тўпламингиздан, сараланганингиздан ва қидирувдан бутунлай йўқолади. Блок қурилмангизда дарҳол ва муддатсиз ишлайди; уни профилдаги «Блокланганлар» бўлимида олиб ташлаш мумкин.',
       },
       {
         title: 'Биз нима учун жавоб бермаймиз',
@@ -256,7 +292,7 @@ const uzc: Record<LegalKey, LegalDoc> = {
   },
   privacy: {
     title: 'Махфийлик сиёсати',
-    updated: '2026 йил 13 августда янгиланган',
+    updated: '2026 йил 20 августда янгиланган',
     intro: 'Бу ерда AvtoLike қандай маълумотларни йиғиши ва улар билан нима бўлиши ёзилган.',
     sections: [
       {

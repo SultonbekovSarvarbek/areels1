@@ -37,12 +37,13 @@ interface CardProps {
   progress: SharedValue<number>;
   onSwipe: (car: Car, direction: SwipeDirection) => void;
   onPressDetails: (car: Car) => void;
+  onReport: (car: Car) => void;
   /** Направление, с которого карточка «прилетает» обратно после отмены свайпа. */
   entryFrom?: SwipeDirection | null;
 }
 
 const SwipeCard = forwardRef<CardHandle, CardProps>(function SwipeCard(
-  { car, progress, onSwipe, onPressDetails, entryFrom },
+  { car, progress, onSwipe, onPressDetails, onReport, entryFrom },
   ref,
 ) {
   const t = useT();
@@ -120,7 +121,7 @@ const SwipeCard = forwardRef<CardHandle, CardProps>(function SwipeCard(
   return (
     <GestureDetector gesture={pan}>
       <Animated.View style={[styles.layer, cardStyle]}>
-        <CarCard car={car} onPressDetails={onPressDetails} />
+        <CarCard car={car} onPressDetails={onPressDetails} onReport={onReport} />
         <Animated.View style={[styles.stamp, styles.stampLike, likeStyle]} pointerEvents="none">
           <Animated.Text style={[styles.stampText, { color: c.like }]}>{t.stampLike}</Animated.Text>
         </Animated.View>
@@ -137,11 +138,13 @@ interface Props {
   index: number;
   onSwipe: (car: Car, direction: SwipeDirection) => void;
   onPressDetails: (car: Car) => void;
+  /** Жалоба на верхнюю карточку — кнопка есть только у неё. */
+  onReport: (car: Car) => void;
   entryFrom?: SwipeDirection | null;
 }
 
 export const SwipeDeck = forwardRef<SwipeDeckHandle, Props>(function SwipeDeck(
-  { cars, index, onSwipe, onPressDetails, entryFrom },
+  { cars, index, onSwipe, onPressDetails, onReport, entryFrom },
   ref,
 ) {
   const c = useColors();
@@ -181,6 +184,7 @@ export const SwipeDeck = forwardRef<SwipeDeckHandle, Props>(function SwipeDeck(
                 progress={progress}
                 onSwipe={onSwipe}
                 onPressDetails={onPressDetails}
+                onReport={onReport}
                 entryFrom={entryFrom}
               />
             );

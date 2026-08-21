@@ -1,6 +1,7 @@
 import Fastify from 'fastify';
 
 import { registerAdmin } from './admin.ts';
+import { registerReports } from './reports.ts';
 import { db, listingInclude } from './db.ts';
 import { env } from './env.ts';
 import { toCar, type ListingRow } from './mapper.ts';
@@ -9,6 +10,9 @@ const app = Fastify({ logger: true });
 
 // Модерация: панель и её API живут на том же сервере, что и каталог.
 registerAdmin(app);
+
+// Жалобы от покупателей — публичный роут, без авторизации.
+registerReports(app);
 
 /**
  * Каталог отдаётся целиком, без пагинации и серверной фильтрации, — так решено
@@ -20,10 +24,14 @@ registerAdmin(app);
  *
  * status: 'published' — это ещё и граница модерации: всё, что пришло из бота,
  * лежит в pending и в каталог не попадает, пока его не одобрят в /admin.
+ *
+ * Забаненный продавец исчезает из каталога целиком, вместе со всеми своими
+ * объявлениями, — не по одному объявлению за раз. Этого требует 1.2: нарушителя
+ * нужно отлучить от сервиса, а не только снять конкретное объявление.
  */
 async function publishedCars(): Promise<ListingRow[]> {
   const rows = await db.listing.findMany({
-    where: { status: 'published', photos: { some: {} } },
+    where: { status: 'published', photos: { some: {} }, seller: { blockedAt: null } },
     include: listingInclude,
     orderBy: { createdAt: 'desc' },
   });
@@ -42,7 +50,7 @@ app.get('/api/cars', async () => {
 
 app.get<{ Params: { id: string } }>('/api/cars/:id', async (request, reply) => {
   const row = await db.listing.findFirst({
-    where: { id: request.params.id, status: 'published' },
+    where: { id: request.params.id, status: 'published', seller: { blockedAt: null } },
     include: listingInclude,
   });
 

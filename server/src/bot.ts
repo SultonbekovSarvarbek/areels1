@@ -707,6 +707,12 @@ async function saveLang(telegramId: bigint, lang: Lang): Promise<void> {
 // ─── Публикация ──────────────────────────────────────────────────────────────
 
 async function publish(ctx: BotContext): Promise<void> {
+  // Анкету заполняют не одну минуту — за это время продавца могли забанить.
+  if (await blockedHere(ctx)) {
+    reset(ctx);
+    return;
+  }
+
   const s = ctx.session;
   const d = s.draft as Draft;
   const telegramId = BigInt(ctx.from!.id);
@@ -874,8 +880,33 @@ bot.command('cancel', async (ctx) => {
 
 bot.command('my', showMyListings);
 
+/**
+ * Забаненный продавец не начинает анкету и не публикует. Проверяем в базе, а не
+ * в сессии: бан ставится модератором прямо посреди диалога, и кэш пережил бы
+ * его до перезапуска бота.
+ *
+ * Возвращает true, если продавец заблокирован, и уже ответил ему сам.
+ */
+async function blockedHere(ctx: BotContext): Promise<boolean> {
+  if (!ctx.from) return false;
+
+  const seller = await db.seller.findUnique({
+    where: { telegramId: BigInt(ctx.from.id) },
+    select: { blockedAt: true, blockReason: true, lang: true },
+  });
+  if (!seller?.blockedAt) return false;
+
+  await ctx.reply(
+    TEXT[seller.lang].blockedNotice(seller.blockReason ?? '—'),
+    { parse_mode: 'HTML' },
+  );
+  return true;
+}
+
 /** Начало анкеты: профиль спрашиваем только у незнакомого продавца. */
 async function startForm(ctx: BotContext): Promise<void> {
+  if (await blockedHere(ctx)) return;
+
   const known = await db.seller.findUnique({ where: { telegramId: BigInt(ctx.from!.id) } });
   if (known) {
     ctx.session.profile = { phone: known.phone, name: known.name, type: known.type };

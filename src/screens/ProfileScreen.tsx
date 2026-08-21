@@ -1,5 +1,14 @@
 import { useMemo, useState } from 'react';
-import { Alert, FlatList, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
+import {
+  Alert,
+  FlatList,
+  Linking,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -8,6 +17,7 @@ import { OFFERS_ENABLED } from '../features';
 import { Palette, radius } from '../theme';
 import { useColors } from '../ThemeContext';
 import { useI18n } from '../I18nContext';
+import { useModeration } from '../ModerationContext';
 import { Dict, LANGS } from '../i18n';
 import { LegalKey, legal } from '../legal';
 import { LegalScreen } from './LegalScreen';
@@ -80,6 +90,7 @@ export function ProfileScreen({
   const styles = useMemo(() => makeStyles(c), [c]);
   /** Открытый документ: условия или политика. null — шторка закрыта. */
   const [doc, setDoc] = useState<LegalKey | null>(null);
+  const { blockedSellers, unblockSeller } = useModeration();
 
   const openSupport = () => {
     Linking.openURL(`https://t.me/${SUPPORT}`).catch(() => {
@@ -125,6 +136,39 @@ export function ProfileScreen({
     </>
   );
 
+  /**
+   * Разблокировать можно только отсюда: объявлений заблокированного продавца
+   * нигде больше нет, и вернуть его через них невозможно. Раздел показываем
+   * всегда, даже пустым, — иначе человек, заблокировавший кого-то сгоряча, не
+   * найдёт, где это отменить.
+   */
+  const blockedList = (
+    <>
+      <Text style={styles.section}>
+        {t.blockedSection}
+        {blockedSellers.length > 0 && ` · ${t.blockedCount(blockedSellers.length)}`}
+      </Text>
+      {blockedSellers.length === 0 ? (
+        <Text style={styles.blockedEmpty}>{t.blockedEmpty}</Text>
+      ) : (
+        <View style={styles.docs}>
+          {blockedSellers.map((seller) => (
+            <View key={seller.id} style={styles.docRow}>
+              <Ionicons name="person-remove-outline" size={18} color={c.skip} />
+              <Text style={styles.docText} numberOfLines={1}>
+                {seller.name}
+              </Text>
+              <Pressable onPress={() => unblockSeller(seller.id)} hitSlop={10}>
+                <Text style={styles.unblock}>{t.unblock}</Text>
+              </Pressable>
+            </View>
+          ))}
+        </View>
+      )}
+      <Text style={styles.moderationNote}>{t.moderationNote}</Text>
+    </>
+  );
+
   const support = (
     <>
       <Text style={styles.section}>{t.support}</Text>
@@ -153,11 +197,18 @@ export function ProfileScreen({
             <Text style={styles.statLabel}>{t.statFavourites}</Text>
           </View>
         </View>
-        <View style={[styles.langBlock, styles.langBlockGuest]}>
+        {/* Список заблокированных растёт, а блок под статистикой не резиновый —
+            прокручиваем. */}
+        <ScrollView
+          style={styles.scrollBlock}
+          contentContainerStyle={styles.scrollBlockContent}
+          showsVerticalScrollIndicator={false}
+        >
           {documents}
+          {blockedList}
           {support}
           {langPicker}
-        </View>
+        </ScrollView>
         {legalSheet}
       </View>
     );
@@ -374,6 +425,13 @@ const makeStyles = (c: Palette) =>
     langBlock: { paddingHorizontal: 4 },
     // У гостя блок лежит вне FlatList, поэтому отступы списка ему нужно задать самому.
     langBlockGuest: { paddingHorizontal: 20, paddingBottom: 24 },
+    // То же самое, но прокручиваемое: список заблокированных не ограничен сверху.
+    scrollBlock: { flex: 1 },
+    scrollBlockContent: { paddingHorizontal: 20, paddingBottom: 32 },
+    blockedEmpty: { color: c.textFaint, fontSize: 14, marginTop: 8 },
+    unblock: { color: c.tg, fontSize: 14, fontWeight: '700' },
+    // Обещание разобрать жалобу за сутки — там же, где список блокировок.
+    moderationNote: { color: c.textFaint, fontSize: 12, lineHeight: 18, marginTop: 12 },
     langRow: { flexDirection: 'row', gap: 8, marginTop: 8 },
     lang: {
       flex: 1,

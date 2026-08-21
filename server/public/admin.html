@@ -123,6 +123,41 @@
       .btn.delete { background: transparent; color: var(--faint); border: 1px solid var(--border); }
       .btn:disabled { opacity: 0.5; cursor: default; }
 
+      /* Жалобы */
+      .report {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-left: 3px solid var(--red);
+        border-radius: 16px;
+        padding: 16px;
+        margin-bottom: 16px;
+        display: grid;
+        grid-template-columns: 220px 1fr;
+        gap: 20px;
+      }
+      @media (max-width: 780px) { .report { grid-template-columns: 1fr; } }
+      .report .photos img { height: 140px; }
+      /* Отдельно от .reason выше: та — строка «Причина отказа» в карточке
+         объявления, эта — плашка с причиной жалобы. */
+      .reasonChip {
+        display: inline-block;
+        background: rgba(255, 95, 109, 0.16);
+        border: 1px solid var(--red);
+        color: var(--red);
+        border-radius: 999px;
+        padding: 4px 12px;
+        font-size: 13px;
+        font-weight: 700;
+        margin-bottom: 8px;
+      }
+      .comment { color: var(--text); white-space: pre-wrap; margin-bottom: 10px; }
+      .age { color: var(--amber); font-weight: 700; }
+      .btn.hide { background: var(--red); color: #2a0409; }
+      .btn.ban { background: transparent; color: var(--red); border: 1px solid var(--red); }
+      .btn.dismiss { background: transparent; color: var(--dim); border: 1px solid var(--border); }
+      .banned { color: var(--red); font-size: 13px; font-weight: 700; margin-bottom: 8px; }
+      .flag { color: var(--red); font-weight: 700; }
+
       /* Вход */
       .login { max-width: 340px; margin: 18vh auto; text-align: center; }
       .login input {
@@ -168,12 +203,29 @@
       const CONDITION = { excellent: 'Отличное', good: 'Хорошее', average: 'Среднее', needsRepair: 'Требует ремонта' };
       const SELLER = { private: 'Частник', dealer: 'Автосалон' };
       const TAB_TITLE = { pending: 'На проверке', published: 'В каталоге', rejected: 'Отклонённые', archived: 'Архив' };
+      const REASON = {
+        fraud: 'Мошенничество', notForSale: 'Не продаётся', wrongInfo: 'Недостоверные данные',
+        foreignPhotos: 'Чужие фото', offensive: 'Оскорбления', spam: 'Спам', other: 'Другое',
+      };
+
+      /**
+       * Сколько прошло с момента жалобы. Сутки на реакцию обещаны пользователям
+       * в условиях использования, поэтому просроченное подсвечиваем.
+       */
+      function age(iso) {
+        const hours = Math.floor((Date.now() - new Date(iso).getTime()) / 3600000);
+        if (hours < 1) return 'только что';
+        if (hours < 24) return hours + ' ч назад';
+        const days = Math.floor(hours / 24);
+        return `<span class="age">${days} дн назад — просрочено</span>`;
+      }
 
       const state = {
         token: localStorage.getItem('avtolike_admin_token') || '',
         status: 'pending',
         counts: {},
         listings: [],
+        reports: [],
         error: '',
       };
 
@@ -299,6 +351,85 @@
           </div>`;
       }
 
+      /**
+       * Жалобы группируем по объявлению: три человека, пожаловавшихся на одно и
+       * то же, — это одно решение модератора, а не три. Порознь очередь выглядит
+       * длиннее, чем она есть, а действие над одной карточкой всё равно закрывает
+       * и остальные.
+       */
+      function groupReports(reports) {
+        const groups = new Map();
+        for (const r of reports) {
+          const key = r.listing.id;
+          if (!groups.has(key)) groups.set(key, { listing: r.listing, reports: [] });
+          groups.get(key).reports.push(r);
+        }
+        // Самая старая жалоба в группе задаёт её место в очереди.
+        return [...groups.values()].sort(
+          (a, b) => new Date(a.reports[0].createdAt) - new Date(b.reports[0].createdAt),
+        );
+      }
+
+      function reportCard(g) {
+        const l = g.listing;
+        const first = g.reports[0];
+        const ids = g.reports.map((r) => r.id).join(',');
+
+        const photos = l.photos
+          .map((url) => `<img src="${esc(url)}" alt="" onclick="zoom('${esc(url)}')" />`)
+          .join('');
+
+        const reasons = g.reports
+          .map((r) => `<div class="reasonChip">${esc(REASON[r.reason] || r.reason)}</div>`)
+          .join(' ');
+
+        const comments = g.reports
+          .filter((r) => r.comment)
+          .map((r) => `<div class="comment">«${esc(r.comment)}»</div>`)
+          .join('');
+
+        const blocked = l.seller.blockedAt
+          ? `<div class="banned">Продавец уже заблокирован: ${esc(l.seller.blockReason || '—')}</div>`
+          : '';
+
+        // Забаненному продавцу банить нечего, а снятое объявление снимать
+        // повторно: в этих случаях из действий остаётся только закрыть жалобы.
+        const actions = [
+          l.status === 'archived'
+            ? ''
+            : `<button class="btn hide" onclick="hideListing('${l.id}')">Снять объявление</button>`,
+          l.seller.blockedAt
+            ? ''
+            : `<button class="btn ban" onclick="openBan('${l.id}')">Заблокировать продавца</button>`,
+          `<button class="btn dismiss" onclick="dismiss('${ids}')">Жалобы не подтвердились</button>`,
+        ].filter(Boolean).join('');
+
+        return `
+          <div class="report">
+            <div class="photos">${photos}</div>
+            <div>
+              <div>${reasons}</div>
+              ${comments}
+              <p class="title">${esc(l.brand)} ${esc(l.model)}, ${l.year}</p>
+              <p class="price">${money(l.price)}</p>
+              ${blocked}
+              <div class="seller"><b>${esc(l.seller.name)}</b> · ${esc(l.seller.phone)}${l.seller.telegram ? ' · @' + esc(l.seller.telegram) : ''}</div>
+              <div class="meta">
+                Жалоб: ${g.reports.length} · первая ${when(first.createdAt)} — ${age(first.createdAt)} · объявление: ${esc(l.status)}
+              </div>
+              <div class="actions">${actions}</div>
+              <div class="rejectBox" id="ban-${l.id}">
+                <div class="hint">Причину увидит продавец в боте. Блокировка снимает все его объявления сразу.</div>
+                <textarea id="banreason-${l.id}" maxlength="300" placeholder="Например: оскорбления в описании объявления"></textarea>
+                <div class="actions">
+                  <button class="btn ban" onclick="ban('${l.id}', '${l.seller.id}')">Заблокировать</button>
+                  <button class="btn dismiss" onclick="closeBan('${l.id}')">Отмена</button>
+                </div>
+              </div>
+            </div>
+          </div>`;
+      }
+
       function render() {
         const tabs = Object.entries(TAB_TITLE)
           .map(([key, title]) => {
@@ -307,26 +438,43 @@
           })
           .join('');
 
+        // Жалобы — такая же вкладка, но со своим источником и своей карточкой.
+        const openReports = state.counts.reports ?? 0;
+        const reportsTab = `<button class="tab ${state.status === 'reports' ? 'active' : ''}" onclick="go('reports')">Жалобы <b class="${openReports ? 'flag' : ''}">${openReports}</b></button>`;
+
+        const body = state.status === 'reports'
+          ? (state.reports.length
+              ? groupReports(state.reports).map(reportCard).join('')
+              : '<div class="empty">Жалоб нет</div>')
+          : (state.listings.length ? state.listings.map(card).join('') : '<div class="empty">Здесь пусто</div>');
+
         app.innerHTML = `
           <header>
             <h1>Модерация</h1>
-            <div class="tabs">${tabs}</div>
+            <div class="tabs">${tabs}${reportsTab}</div>
             <div class="spacer"></div>
             <button class="link" onclick="load()">Обновить</button>
             <button class="link" onclick="logout()">Выйти</button>
           </header>
           <main>
             ${state.error ? `<div class="error">${esc(state.error)}</div>` : ''}
-            ${state.listings.length ? state.listings.map(card).join('') : '<div class="empty">Здесь пусто</div>'}
+            ${body}
           </main>`;
       }
 
       async function load() {
         if (!state.token) return renderLogin();
         try {
-          const data = await api('/api/admin/listings?status=' + state.status);
+          // Счётчики вкладок живут в ответе со списком объявлений, поэтому его
+          // запрашиваем всегда — даже когда открыты жалобы.
+          const listStatus = state.status === 'reports' ? 'pending' : state.status;
+          const [data, reports] = await Promise.all([
+            api('/api/admin/listings?status=' + listStatus),
+            state.status === 'reports' ? api('/api/admin/reports?status=open') : Promise.resolve(null),
+          ]);
           state.counts = data.counts;
-          state.listings = data.listings;
+          state.listings = state.status === 'reports' ? [] : data.listings;
+          if (reports) state.reports = reports.reports;
           state.error = '';
           render();
         } catch (e) {
@@ -382,6 +530,50 @@
           state.error = e.message;
           render();
         }
+      }
+
+      async function hideListing(listingId) {
+        try {
+          await api('/api/admin/listings/' + listingId + '/hide', {
+            method: 'POST',
+            body: JSON.stringify({ reason: 'снято по жалобам пользователей' }),
+          });
+          load();
+        } catch (e) { state.error = e.message; render(); }
+      }
+
+      /** Закрываем все жалобы группы разом: решение по объявлению одно. */
+      async function dismiss(ids) {
+        try {
+          for (const id of ids.split(',')) {
+            await api('/api/admin/reports/' + id + '/dismiss', { method: 'POST' });
+          }
+          load();
+        } catch (e) { state.error = e.message; render(); }
+      }
+
+      function openBan(id) {
+        document.getElementById('ban-' + id).classList.add('open');
+        document.getElementById('banreason-' + id).focus();
+      }
+
+      function closeBan(id) {
+        document.getElementById('ban-' + id).classList.remove('open');
+      }
+
+      async function ban(listingId, sellerId) {
+        const reason = document.getElementById('banreason-' + listingId).value.trim();
+        if (!reason) {
+          state.error = 'Без причины блокировать нельзя: продавец увидит её в боте';
+          return render();
+        }
+        try {
+          await api('/api/admin/sellers/' + sellerId + '/block', {
+            method: 'POST',
+            body: JSON.stringify({ reason }),
+          });
+          load();
+        } catch (e) { state.error = e.message; render(); }
       }
 
       /**

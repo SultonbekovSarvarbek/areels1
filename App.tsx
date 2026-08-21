@@ -11,8 +11,10 @@ import { ThemeProvider, useTheme } from './src/ThemeContext';
 import { SessionProvider, useSession } from './src/SessionContext';
 import { I18nProvider } from './src/I18nContext';
 import { CatalogProvider, useCatalog } from './src/CatalogContext';
+import { ModerationProvider, useModeration } from './src/ModerationContext';
 import { countActiveFilters, matchesFilters } from './src/utils/filter';
-import { loadState, saveFilters, saveLiked, savePassed } from './src/storage';
+import { loadConsent, loadState, saveConsent, saveFilters, saveLiked, savePassed } from './src/storage';
+import { ConsentScreen } from './src/screens/ConsentScreen';
 import { DeckScreen } from './src/screens/DeckScreen';
 import { LikesScreen } from './src/screens/LikesScreen';
 import { CarDetailScreen } from './src/screens/CarDetailScreen';
@@ -20,6 +22,7 @@ import { ProfileScreen } from './src/screens/ProfileScreen';
 import { FiltersSheet } from './src/components/FiltersSheet';
 import { AuthSheet } from './src/components/AuthSheet';
 import { OfferSheet } from './src/components/OfferSheet';
+import { ReportSheet } from './src/components/ReportSheet';
 import { TabBar, TabKey } from './src/components/TabBar';
 
 const buzz = (style: Haptics.ImpactFeedbackStyle) => {
@@ -36,7 +39,16 @@ function Root() {
   const [liked, setLiked] = useState<string[]>([]);
   const [passed, setPassed] = useState<string[]>([]);
 
-  const { cars, brands, loading, error, reload } = useCatalog();
+  const { cars: allCars, brands, loading, error, reload } = useCatalog();
+  const { isHidden } = useModeration();
+
+  /**
+   * Каталог за вычетом того, что пользователь у себя закрыл: объявления
+   * заблокированных продавцов и те, на которые он пожаловался. Фильтруем здесь,
+   * а не в колоде, потому что скрыть их нужно везде разом — и в подборе, и в
+   * избранном, и в счётчике фильтров.
+   */
+  const cars = useMemo(() => allCars.filter((car) => !isHidden(car)), [allCars, isHidden]);
 
   const [index, setIndex] = useState(0);
 
@@ -44,11 +56,29 @@ function Root() {
   const [filtersVisible, setFiltersVisible] = useState(false);
   const [authVisible, setAuthVisible] = useState(false);
   const [offerCar, setOfferCar] = useState<Car | null>(null);
+  /** Машина, на которую жалуются. null — шторка жалобы закрыта. */
+  const [reportCar, setReportCar] = useState<Car | null>(null);
   /** Машина, ради которой открыли вход — после успеха сразу ведём к форме цены. */
   const pendingOffer = useRef<Car | null>(null);
 
   /** Хранилище прочитано. Состоянием, а не ref: от него зависит чистка id ниже. */
   const [hydrated, setHydrated] = useState(false);
+
+  /**
+   * Принял ли пользователь условия. null — ещё читаем из хранилища и не знаем,
+   * показывать ли экран согласия; рисовать что-либо до ответа нельзя, иначе
+   * колода мигнёт перед экраном с правилами.
+   */
+  const [consent, setConsent] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    loadConsent().then(setConsent);
+  }, []);
+
+  const acceptConsent = useCallback(() => {
+    saveConsent();
+    setConsent(true);
+  }, []);
 
   /**
    * Колода — производное от каталога и фильтров, а не отдельное состояние.
@@ -200,27 +230,54 @@ function Root() {
     [cars],
   );
 
-  // Один и тот же набор шторок: внутри карточки, когда она открыта, иначе в корне.
-  // Обе живут ради предложения цены — пока оно выключено (features.ts), их нет.
-  const sheets = !OFFERS_ENABLED ? null : (
+  /**
+   * Один и тот же набор шторок: внутри карточки, когда она открыта, иначе в
+   * корне. Вход и предложение цены живут за флагом (features.ts), жалоба — нет:
+   * пожаловаться должно быть можно всегда.
+   */
+  const sheets = (
     <>
-      <AuthSheet
-        visible={authVisible}
-        onClose={() => {
-          pendingOffer.current = null;
-          setAuthVisible(false);
-        }}
-        onDone={handleSignedIn}
-      />
+      {OFFERS_ENABLED && (
+        <>
+          <AuthSheet
+            visible={authVisible}
+            onClose={() => {
+              pendingOffer.current = null;
+              setAuthVisible(false);
+            }}
+            onDone={handleSignedIn}
+          />
 
-      <OfferSheet
-        car={offerCar}
-        current={offerCar ? offerFor(offerCar.id)?.price : undefined}
-        onClose={() => setOfferCar(null)}
-        onSubmit={handleSubmitOffer}
+          <OfferSheet
+            car={offerCar}
+            current={offerCar ? offerFor(offerCar.id)?.price : undefined}
+            onClose={() => setOfferCar(null)}
+            onSubmit={handleSubmitOffer}
+          />
+        </>
+      )}
+
+      <ReportSheet
+        car={reportCar}
+        onClose={() => setReportCar(null)}
+        // Объявление скрыто — карточку под шторкой закрываем: показывать её
+        // тому, кто только что на неё пожаловался, незачем.
+        onHidden={() => setDetailCar(null)}
       />
     </>
   );
+
+  // Экран согласия — до всего остального: пока условия не приняты, каталог
+  // пользователь не видит (App Store 1.2).
+  if (consent === null) return <View style={[styles.root, { backgroundColor: colors.bg }]} />;
+  if (!consent) {
+    return (
+      <View style={[styles.root, { backgroundColor: colors.bg }]}>
+        <StatusBar style={name === 'dark' ? 'light' : 'dark'} />
+        <ConsentScreen onAccept={acceptConsent} />
+      </View>
+    );
+  }
 
   return (
     <View style={[styles.root, { backgroundColor: colors.bg }]}>
@@ -235,6 +292,7 @@ function Root() {
             onSwipe={handleSwipe}
             onOpenFilters={() => setFiltersVisible(true)}
             onOpenCar={setDetailCar}
+            onReport={setReportCar}
             onToggleTheme={toggleTheme}
             themeName={name}
             loading={loading}
@@ -285,6 +343,7 @@ function Root() {
         isLiked={!!detailCar && liked.includes(detailCar.id)}
         onOfferPress={handleOfferPress}
         onToggleLike={handleToggleLike}
+        onReport={setReportCar}
         onClose={() => setDetailCar(null)}
       >
         {detailCar && sheets}
@@ -303,7 +362,9 @@ export default function App() {
           <ThemeProvider>
             <SessionProvider>
               <CatalogProvider>
-                <Root />
+                <ModerationProvider>
+                  <Root />
+                </ModerationProvider>
               </CatalogProvider>
             </SessionProvider>
           </ThemeProvider>
