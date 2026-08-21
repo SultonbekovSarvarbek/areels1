@@ -462,6 +462,11 @@ const STEPS: Record<string, Step> = {
       const fuel = fuelChoice.parse(text);
       if (!fuel) return TEXT[s.lang].chooseButton;
       s.draft.fuel = fuel;
+      // У электрички объёма нет: вопрос про литры пропускаем, в базу кладём 0.
+      if (fuel === 'electric') {
+        s.draft.engine = 0;
+        s.steps = s.steps.filter((id) => id !== 'engine');
+      }
       return null;
     },
   },
@@ -623,7 +628,7 @@ function summary(s: SessionData): string {
     `${money(d.price)}${d.negotiable ? ` (${t.summaryBargain})` : ''}`,
     `${d.mileage.toLocaleString('ru-RU')} ${t.unitKm} · ${e.condition[d.condition]} · ${e.city[d.city]}`,
     `${e.bodyType[d.bodyType]} · ${e.fuel[d.fuel]} · ${e.transmission[d.transmission]} · ${e.drive[d.drive]}`,
-    `${d.engine} ${t.unitL} · ${d.color} · ${t.owners(d.owners)}`,
+    [d.engine > 0 && `${d.engine} ${t.unitL}`, d.color, t.owners(d.owners)].filter(Boolean).join(' · '),
     `${t.summaryTint}: ${d.tint ?? t.tintNo}`,
     d.description ? `\n${d.description}` : '',
     `\n${t.summaryPhotos}: ${s.photos.length}`,

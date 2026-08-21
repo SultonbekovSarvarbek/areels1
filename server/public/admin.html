@@ -299,7 +299,7 @@
           BODY[item.bodyType],
           TRANSMISSION[item.transmission],
           DRIVE[item.drive],
-          item.engine + ' л' + (item.power ? ' · ' + item.power + ' л.с.' : ''),
+          [item.engine > 0 && item.engine + ' л', item.power && item.power + ' л.с.'].filter(Boolean).join(' · ') || '—',
           item.color,
           item.tint ? 'тонировка: ' + item.tint : null,
           item.negotiable ? 'торг' : 'без торга',

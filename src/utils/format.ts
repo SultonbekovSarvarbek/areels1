@@ -9,9 +9,14 @@ export const formatPriceShort = (usd: number) =>
 
 export const formatMileage = (km: number, unit = 'км') => `${group(km)} ${unit}`;
 
-/** Мощность знают не все продавцы — без неё показываем только объём. */
-export const formatEngine = (liters: number, power: number | undefined, l = 'л', hp = 'л.с.') =>
-  power === undefined ? `${liters.toFixed(1)} ${l}` : `${liters.toFixed(1)} ${l} · ${power} ${hp}`;
+/** Мощность знают не все продавцы — без неё показываем только объём.
+    У электро объёма нет: бот пишет в базу 0, и литры мы просто опускаем. */
+export const formatEngine = (liters: number, power: number | undefined, l = 'л', hp = 'л.с.') => {
+  const parts: string[] = [];
+  if (liters > 0) parts.push(`${liters.toFixed(1)} ${l}`);
+  if (power !== undefined) parts.push(`${power} ${hp}`);
+  return parts.join(' · ') || '—';
+};
 
 /** +998901234567 → +998 90 123-45-67. Неузнаваемый формат возвращаем как есть. */
 export const formatPhone = (phone: string) => {
